@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fechô</title>
 <meta name="theme-color" content="#15171a">
-<meta name="versao" content="2026-10-29.10">
+<meta name="versao" content="2026-10-29.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Fechô">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2323262a'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='700' font-size='38' text-anchor='middle' fill='%23d6b25a'%3EF%3C/text%3E%3C/svg%3E">
@@ -303,7 +303,8 @@ body.entrada .top:has(.upd[hidden]){display:none}
 /* ===== Configuração ===== */
 const SUPABASE_URL='https://ucuvtorgapdvawitwzfc.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjdXZ0b3JnYXBkdmF3aXR3emZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjgxMTgsImV4cCI6MjEwODgwNDExOH0.9H_1BVTehBYKEZnlkf2J_aUbqx35nPY7JPJkraqZfKo';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const DEMO=/[?&#]demo/.test(location.search+location.hash);
+const sb=DEMO?criaDemo():window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const ETAPAS=[['aguardando','Aguardando pagamento'],['pago','Pago'],['embalado','Embalado'],['faturado','NF emitida'],['coletado','Em entrega'],['entregue','Entregue']];
 const IDX=Object.fromEntries(ETAPAS.map((e,i)=>[e[0],i]));
@@ -947,6 +948,7 @@ async function abreConvite(){
   render();
 }
 async function chamaConvite(body){
+  if(DEMO)return{ok:false,erro:'Convites por WhatsApp não funcionam na demonstração.'};
   try{
     const r=await fetch(`${SUPABASE_URL}/functions/v1/convite`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},body:JSON.stringify(body)});
     const j=await r.json().catch(()=>({}));
@@ -1496,12 +1498,273 @@ document.addEventListener('click',async ev=>{
 setTimeout(checaVersao,3000);setInterval(checaVersao,300000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checaVersao()});
 {const t=new URLSearchParams(location.search).get('c');if(t&&/^[0-9a-f]{64}$/.test(t)){S.conv={token:t,estado:'carregando'};abreConvite()}}
+/* ===== Modo demonstração (abre com ?demo): dados de mentira, nada vai para o banco real ===== */
+function criaDemo(){
+  const KEY='fecho-demo-v1';
+  const agora=()=>new Date().toISOString(),dias=n=>new Date(Date.now()-n*864e5).toISOString();
+  let seq=0;const nid=p=>p+(++seq)+Math.random().toString(16).slice(2,6);
+  const PERS=[['proprietario','u-dono','Proprietário · Marcelo'],['supervisor','u-sup','Supervisor · Daniele'],['gerente','u-ger','Gerente · Wallace'],['vendedor','u-vend','Vendedor · Camila'],['afiliado','u-af','Afiliado · Ana']];
+  let db=null;
+  try{db=JSON.parse(sessionStorage.getItem(KEY)||'null')}catch(e){}
+  let eu=(PERS.find(p=>p[0]===(new URLSearchParams(location.search).get('demo')||''))||PERS[0])[1];
+  const salva=()=>{try{sessionStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
+  const perfil=id=>db.perfis.find(p=>p.id===id);
+  const euP=()=>perfil(eu);
+  const veTodas=()=>['proprietario','supervisor'].includes(euP().papel);
+  const fk=t=>{const d=String(t||'').replace(/\D/g,'');return d.length>=10&&d.length<=11?'55'+d:d};
+  const r2=n=>Math.round(n*100)/100;
+  const falha=(m)=>{const e=new Error(m);e.code='P0001';throw e};
+
+  /* ---------- dados iniciais ---------- */
+  function semear(){
+    db={lojas:[],perfis:[],clientes:[],pedidos:[],convites:[],saques:[],ajustes:[],pix:{},vinculos:[],
+      config:[{chave:'afiliado',valor:{prazo_dias:7,desconto_pct:0},atualizado_em:agora()},{chave:'carteira',valor:{inicio:dias(60),saque_min:10},atualizado_em:agora()}],
+      regras:[{papel:'vendedor',limite_valor:1500,limite_pix:3000,parcela_min:100,max_parcelas:6},{papel:'gerente',limite_valor:null,limite_pix:null,parcela_min:null,max_parcelas:6}]};
+    [['l1','Barra 1','B1'],['l2','Barra 2','B2'],['l3','Gávea','GV'],['l4','Aeroporto Santos Dumont','SD'],['l5','Maracanã','MR']].forEach(l=>db.lojas.push({id:l[0],nome:l[1],marca:'Flamengo',sigla:l[2],ativa:true,criado_em:dias(90)}));
+    const P=(id,nome,papel,loja,com,fone,extra)=>db.perfis.push({id,nome,papel,status:'ativo',loja_id:loja,comissao:com,fone,email:id+'@demo.fecho',cpf:'',nascimento:null,email_contato:'',criado_em:dias(80),comissao_direta:null,codigo_afiliado:null,...(extra||{})});
+    P('u-dono','Marcelo Plaisant','proprietario',null,null,'5521999990001');
+    P('u-sup','Daniele Souza','supervisor',null,null,'5521999990002');
+    P('u-ger','Wallace Lima','gerente','l1',1.5,'5521999990003');
+    P('u-ger2','Bruninho Alves','gerente','l2',1,'5521999990004');
+    P('u-vend','Camila Rocha','vendedor','l1',3,'5521999990005');
+    P('u-vend2','Rafael Costa','vendedor','l1',4,'5521999990006');
+    P('u-af','Ana Influencer','afiliado',null,4,'5521999990007',{comissao_direta:6,codigo_afiliado:'ANA32'});
+    [['c1','Maria Helena Duarte','21988880001','l1','u-vend'],['c2','João Pedro Nunes','21988880002','l1','u-vend'],['c3','Paula Ribeiro','21988880003','l1','u-vend2'],['c4','Carlos Eduardo Lima','21988880004','l2','']].forEach(c=>db.clientes.push({id:c[0],nome:c[1],fone:c[2],cpf:'',email:'',nascimento:null,cep:'22640-100',endereco:'Av. das Américas, 500',bairro:'Barra da Tijuca',cidade:'Rio de Janeiro',obs:'',loja_id:c[3],vendedor_id:c[4]||null,criado_em:dias(40)}));
+    const it=(ref,desc,tam,preco,qtd)=>({ref,desc,tam,qtd:qtd||1,preco,obs:''});
+    const camisa=tam=>it('FLA-26-001','Camisa Flamengo I 2026 Torcedor',tam,349.9),bone=()=>it('FLA-BN-04','Boné Flamengo Aba Curva','U',149.9),jaq=()=>it('FLA-JQ-11','Jaqueta Flamengo Treino','G',599.9);
+    const mk=(quem,loja,vend,cli,itens,pag,extra)=>{eu=quem;const r=criaPedido({loja_id:loja,vendedor_id:vend,cliente:{nome:cli[0],fone:cli[1]},cliente_id:cli[2]||null,itens,modo:'motoboy',frete:25,link_pagamento:'https://pagamento.exemplo/demo',pagamento:pag,obs:'',historico:[],...(extra||{})});return r};
+    const set=(p,st,diasPago,diasEnt)=>{p.status=st;if(diasPago!=null)p.pago_em=dias(diasPago);if(diasEnt!=null)p.entregue_em=dias(diasEnt);p.historico=[{s:'aguardando',em:p.criado_em,nome:''},...(st!=='aguardando'?[{s:st,em:agora(),nome:''}]:[])]};
+    let p;
+    p=mk('u-vend','l1','u-vend',['Maria Helena Duarte','21988880001','c1'],[camisa('M'),bone()],{forma:'Pix'});set(p,'entregue',12,10);p.criado_em=dias(12);
+    p=mk('u-vend','l1','u-vend',['João Pedro Nunes','21988880002','c2'],[camisa('G'),camisa('M'),jaq()],{forma:'Cartão de crédito',parcelas:3});set(p,'entregue',4,2);p.criado_em=dias(4);
+    p=mk('u-vend2','l1','u-vend2',['Paula Ribeiro','21988880003','c3'],[jaq()],{forma:'Pix'});set(p,'pago',1,null);
+    p=mk('u-vend','l1','u-vend',['Maria Helena Duarte','21988880001','c1'],[camisa('P')],{forma:'Pix'});set(p,'aguardando');
+    p=mk('u-vend','l1','u-vend',['João Pedro Nunes','21988880002','c2'],[camisa('M'),camisa('G'),camisa('GG'),jaq(),bone()],{forma:'Cartão de crédito',parcelas:6});
+    p=mk('u-af','l1',null,['Cliente da Ana','21977770001'],[it('FLA-26-002','Camisa Flamengo II 2026','M',399.9,2),bone()],{forma:'Pix'},{loja_id:'l1'});set(p,'entregue',11,9);p.criado_em=dias(11);
+    p=mk('u-ger','l1','u-vend2',['Paula Ribeiro','21988880003','c3'],[camisa('M'),bone()],{forma:'Pix',},{afiliado_id:'u-af'});set(p,'pago',2,null);
+    p=mk('u-ger2','l2',null,['Carlos Eduardo Lima','21988880004','c4'],[jaq(),camisa('G')],{forma:'Cartão de crédito',parcelas:2});set(p,'entregue',9,8);p.criado_em=dias(9);
+    db.pix['u-vend']={tipo:'celular',chave:'21999990005'};
+    db.saques.push({id:'s-demo',perfil_id:'u-vend',valor:10,chave_tipo:'celular',chave:'21999990005',status:'solicitado',criado_em:dias(1),resolvido_em:null,resolvido_por:null,obs:''});
+    eu=(PERS.find(x=>x[0]===(new URLSearchParams(location.search).get('demo')||''))||PERS[0])[1];
+    salva();
+  }
+
+  /* ---------- gatilho do pedido (igual ao do banco) ---------- */
+  function preparaPedido(n,o,op){
+    const a=euP(),edit=op==='insert'||(o.status==='aguardando'&&n.status==='aguardando');
+    if(a.papel==='afiliado'&&op==='update'&&!edit)falha('O afiliado só pode alterar o pedido enquanto ele aguarda o pagamento.');
+    if(!edit)['itens','frete','modo','loja_id','vendedor_id','vendedor_nome','gerente_id','gerentes','supervisores','comissao_vend','comissao_gerente','numero','criado_em','criado_por','afiliado_id','afiliado_nome','comissao_afiliado','afiliado_origem'].forEach(k=>n[k]=o[k]);
+    if(op==='update'){n.entregue_em=o.entregue_em;n.afiliado_pago_em=o.afiliado_pago_em;n.afiliado_pago_por=o.afiliado_pago_por}else{n.entregue_em=null;n.afiliado_pago_em=null;n.afiliado_pago_por=null}
+    n.itens=n.itens||[];
+    const s=n.itens.reduce((t,i)=>t+Math.max(+i.qtd||0,0)*Math.max(+i.preco||0,0),0);
+    if(n.modo==='retirada')n.frete=0;
+    n.subtotal=r2(s);n.total=r2(n.subtotal+(+n.frete||0));n.atualizado_em=agora();
+    const loja=db.lojas.find(l=>l.id===n.loja_id)||{};
+    if(edit){
+      const v=perfil(n.vendedor_id)||{};
+      const gs=db.perfis.filter(g=>g.loja_id===n.loja_id&&g.papel==='gerente'&&g.status==='ativo').map(g=>({id:g.id,nome:g.nome,pct:+g.comissao||0}));
+      n.vendedor_nome=v.nome||'';n.comissao_vend=v.papel==='vendedor'?(+v.comissao||0):0;
+      n.gerentes=gs;n.gerente_id=gs[0]?gs[0].id:null;n.comissao_gerente=gs.reduce((t,g)=>t+g.pct,0);
+      n.supervisores=db.perfis.filter(p=>p.papel==='supervisor'&&p.status==='ativo').map(p=>({id:p.id,nome:p.nome,pct:p.comissao==null?1:+p.comissao}));
+      const f=fk(n.cliente&&n.cliente.fone);let af=null;
+      if(a.papel==='afiliado'){
+        n.vendedor_id=null;n.vendedor_nome='';n.afiliado_id=a.id;
+        if(op==='update'&&o.afiliado_id===a.id){n.afiliado_nome=o.afiliado_nome;n.comissao_afiliado=o.comissao_afiliado;n.afiliado_origem=o.afiliado_origem}
+        else{n.afiliado_nome=a.nome;n.comissao_afiliado=a.comissao_direta==null?6:+a.comissao_direta;n.afiliado_origem='direta'}
+      }else if(op==='update'&&(n.afiliado_id||null)===(o.afiliado_id||null)){n.afiliado_nome=o.afiliado_nome;n.comissao_afiliado=o.comissao_afiliado;n.afiliado_origem=o.afiliado_origem}
+      else{
+        if(n.afiliado_id&&['gerente','supervisor','proprietario'].includes(a.papel))af=db.perfis.find(p=>p.id===n.afiliado_id&&p.papel==='afiliado'&&p.status==='ativo');
+        else if(op==='insert'&&f){const vin=db.vinculos.find(x=>x.fone===f&&x.ate>agora());if(vin)af=db.perfis.find(p=>p.id===vin.afiliado_id&&p.status==='ativo')}
+        if(!af){n.afiliado_id=null;n.afiliado_nome='';n.comissao_afiliado=0;n.afiliado_origem=null}
+        else{n.afiliado_id=af.id;n.afiliado_nome=af.nome;n.comissao_afiliado=af.comissao==null?4:+af.comissao;n.afiliado_origem='indicacao'}
+      }
+      if(n.afiliado_id&&f&&(op==='insert'||o.afiliado_id!==n.afiliado_id)){
+        const ate=new Date(Date.now()+90*864e5).toISOString(),x=db.vinculos.find(v=>v.fone===f);
+        if(!x)db.vinculos.push({fone:f,afiliado_id:n.afiliado_id,ate});else if(x.ate<=agora()||x.afiliado_id===n.afiliado_id){x.afiliado_id=n.afiliado_id;x.ate=ate}
+      }
+      if(n.afiliado_id)n.comissao_vend=0;
+    }
+    let ap=op==='update'?(o.aprovacao||{}):{};
+    if(n.__aprovando){ap=n.aprovacao}
+    else if(edit){
+      const pg=n.pagamento||{},parc=pg.forma==='Cartão de crédito'?(+pg.parcelas||1):1,viol=[];
+      if(a.papel==='vendedor'){
+        const r=db.regras.find(x=>x.papel==='vendedor');
+        if(r){const lim=pg.forma==='Pix'?r.limite_pix:r.limite_valor;
+          if(lim!=null&&n.total>lim)viol.push({tipo:'valor',meio:pg.forma==='Pix'?'Pix':'cartão',limite:lim,atual:n.total});
+          if(parc>1&&r.parcela_min!=null&&n.total/parc<r.parcela_min)viol.push({tipo:'parcela_min',limite:r.parcela_min,atual:r2(n.total/parc)});
+          if(parc>r.max_parcelas)viol.push({tipo:'parcelas',limite:r.max_parcelas,atual:parc})}
+      }
+      if(op==='update'&&o.aprovacao&&o.aprovacao.status==='aprovada'&&+o.aprovacao.total===n.total&&(+o.aprovacao.parcelas||1)===parc)ap=o.aprovacao;
+      else if(viol.length)ap={status:'pendente',exige:a.papel==='vendedor'?'gerente':'supervisor',motivos:viol};
+      else ap={};
+    }
+    delete n.__aprovando;n.aprovacao=ap;
+    if(ap.status==='pendente'){n.link_pagamento='';if(op==='update'&&!['aguardando','cancelado'].includes(n.status))falha('Pedido aguardando aprovação: não pode ser pago ainda.')}
+    if(op==='insert'){
+      const d=new Date(Date.now()-3*36e5),dd=String(d.getUTCDate()).padStart(2,'0')+String(d.getUTCMonth()+1).padStart(2,'0');
+      n.numero=(loja.sigla||'LJ')+'-'+dd+'-'+Math.random().toString(16).slice(2,6).toUpperCase();
+      n.status='aguardando';n.pago_em=null;n.criado_em=agora();n.criado_por=eu;
+    }else if(!['aguardando','cancelado'].includes(n.status)&&!n.pago_em)n.pago_em=agora();
+    if(op==='update'&&n.status==='entregue'&&o.status!=='entregue')n.entregue_em=agora();
+    return n;
+  }
+  function criaPedido(d){const n={id:nid('p'),historico:[],nf:{},entrega:{},link_pagamento:'',obs:'',...d};preparaPedido(n,null,'insert');db.pedidos.push(n);return n}
+
+  /* ---------- visibilidade (mesmas regras do banco) ---------- */
+  function visivel(t,r){
+    const a=euP();if(a.papel==='proprietario'||a.papel==='supervisor')return true;
+    if(t==='pedidos'){if(a.papel==='gerente')return r.loja_id===a.loja_id;if(a.papel==='vendedor')return r.vendedor_id===a.id;return r.afiliado_id===a.id&&r.criado_por===a.id}
+    if(t==='clientes'){if(a.papel==='gerente')return r.loja_id===a.loja_id;if(a.papel==='vendedor')return r.vendedor_id===a.id;return false}
+    if(t==='perfis'){if(a.papel==='gerente')return r.loja_id===a.loja_id||r.id===a.id;return r.id===a.id}
+    if(t==='convites'){return a.papel==='gerente'&&r.papel==='vendedor'&&r.loja_id===a.loja_id}
+    return true;
+  }
+
+  /* ---------- carteira ---------- */
+  const cfg=k=>(db.config.find(c=>c.chave===k)||{valor:{}}).valor;
+  function comissoesDe(id){
+    const prazo=+cfg('afiliado').prazo_dias||7,ini=cfg('carteira').inicio||'1970',L=[];
+    db.pedidos.forEach(p=>{
+      if(['aguardando','cancelado'].includes(p.status))return;
+      if(p.status==='entregue'&&!(p.entregue_em&&p.entregue_em>=ini))return;
+      const add=(papel,valor)=>{if(!(valor>0))return;const lib=p.status==='entregue'&&!!p.entregue_em&&new Date(p.entregue_em).getTime()+prazo*864e5<=Date.now();
+        L.push({pedido_id:p.id,numero:p.numero,papel,valor:r2(valor),liberada:lib,libera_em:p.entregue_em?new Date(new Date(p.entregue_em).getTime()+prazo*864e5).toISOString():null,status:p.status,criado_em:p.criado_em})};
+      if(p.vendedor_id===id&&!p.afiliado_id)add('vendedor',p.subtotal*p.comissao_vend/100);
+      (p.gerentes||[]).forEach(g=>{if(g.id===id)add('gerente',p.subtotal*g.pct/100)});
+      (p.supervisores||[]).forEach(g=>{if(g.id===id)add('supervisor',p.subtotal*g.pct/100)});
+      if(p.afiliado_id===id&&!p.afiliado_pago_em)add('afiliado',p.subtotal*p.comissao_afiliado/100);
+    });
+    return L.sort((a,b)=>b.criado_em.localeCompare(a.criado_em));
+  }
+  function carteira(id){
+    if(id!==eu&&!veTodas())falha('Sem permissão.');
+    const C=comissoesDe(id),sq=db.saques.filter(s=>s.perfil_id===id),aj=db.ajustes.filter(a=>a.perfil_id===id);
+    const lib=C.filter(c=>c.liberada).reduce((t,c)=>t+c.valor,0),apos=C.filter(c=>!c.liberada).reduce((t,c)=>t+c.valor,0);
+    const sol=sq.filter(s=>s.status==='solicitado').reduce((t,s)=>t+s.valor,0),pago=sq.filter(s=>s.status==='pago').reduce((t,s)=>t+s.valor,0),ajs=aj.reduce((t,a)=>t+a.valor,0);
+    const k=db.pix[id];
+    return{prazo_dias:+cfg('afiliado').prazo_dias||7,saque_min:+cfg('carteira').saque_min||10,disponivel:r2(lib+ajs-sol-pago),a_liberar:r2(apos),em_saque:r2(sol),sacado:r2(pago),ajustes:r2(ajs),chave:k||null,
+      comissoes:C.slice(0,100),saques:sq.slice().sort((a,b)=>b.criado_em.localeCompare(a.criado_em)),ajustes_lista:aj.slice().reverse()};
+  }
+
+  /* ---------- funções do banco (rpc) ---------- */
+  const R={
+    minha_carteira:a=>carteira((a&&a.p_perfil)||eu),
+    carteiras_resumo:()=>{if(!veTodas())falha('Sem permissão.');
+      const pessoas=[];db.perfis.filter(p=>p.status==='ativo').forEach(p=>{const c=carteira(p.id);if(c.disponivel||c.a_liberar||c.em_saque||c.sacado)pessoas.push({id:p.id,nome:p.nome,papel:p.papel,loja_id:p.loja_id,disponivel:c.disponivel,a_liberar:c.a_liberar,em_saque:c.em_saque,sacado:c.sacado})});
+      const saques=db.saques.slice().sort((a,b)=>(b.status==='solicitado')-(a.status==='solicitado')||b.criado_em.localeCompare(a.criado_em)).slice(0,60).map(s=>({...s,nome:(perfil(s.perfil_id)||{}).nome,papel:(perfil(s.perfil_id)||{}).papel}));
+      return{pessoas,saques}},
+    salvar_chave_pix:a=>{let c=String(a.p_chave||'').trim();const d=c.replace(/\D/g,''),t=a.p_tipo;
+      if(t==='cpf'){if(d.length!==11)falha('CPF deve ter 11 números.');c=d}else if(t==='celular'){if(![10,11].includes(d.length))falha('Celular deve ter DDD + número.');c=d}
+      else if(t==='email'){c=c.toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c))falha('E-mail inválido.')}
+      else if(t==='aleatoria'){c=c.toLowerCase();if(!/^[0-9a-f-]{32,36}$/.test(c))falha('Chave aleatória inválida.')}else falha('Tipo de chave inválido.');
+      db.pix[eu]={tipo:t,chave:c};return{tipo:t,chave:c}},
+    solicitar_saque:a=>{const k=db.pix[eu];if(!k)falha('Cadastre sua chave Pix antes de sacar.');const c=carteira(eu),v=r2(+a.p_valor||0);
+      if(v<c.saque_min)falha('O saque mínimo é R$ '+String(c.saque_min.toFixed(2)).replace('.',',')+'.');if(v>c.disponivel)falha('Valor maior que o saldo disponível.');
+      const s={id:nid('s'),perfil_id:eu,valor:v,chave_tipo:k.tipo,chave:k.chave,status:'solicitado',criado_em:agora(),resolvido_em:null,resolvido_por:null,obs:''};db.saques.push(s);return s},
+    resolver_saque:a=>{if(euP().papel!=='proprietario')falha('Apenas o proprietário confirma saques.');if(!['pago','recusado'].includes(a.p_acao))falha('Ação inválida.');
+      if(a.p_acao==='recusado'&&!String(a.p_obs||'').trim())falha('Informe o motivo da recusa.');
+      const s=db.saques.find(x=>x.id===a.p_id&&x.status==='solicitado');if(!s)falha('Saque não encontrado ou já resolvido.');
+      s.status=a.p_acao;s.resolvido_em=agora();s.resolvido_por=eu;s.obs=String(a.p_obs||'').trim();return s},
+    lancar_ajuste:a=>{if(euP().papel!=='proprietario')falha('Apenas o proprietário lança ajustes.');if(!perfil(a.p_perfil))falha('Pessoa não encontrada.');
+      const x={id:nid('a'),perfil_id:a.p_perfil,valor:r2(+a.p_valor),motivo:String(a.p_motivo||'').trim(),criado_em:agora(),criado_por:eu};db.ajustes.push(x);return x},
+    lista_afiliados:()=>['proprietario','supervisor','gerente'].includes(euP().papel)?db.perfis.filter(p=>p.papel==='afiliado'&&p.status==='ativo').map(p=>({id:p.id,nome:p.nome,comissao:p.comissao,codigo:p.codigo_afiliado})):[],
+    minhas_vendas_afiliado:()=>{const me=euP(),prazo=+cfg('afiliado').prazo_dias||7;if(me.papel!=='afiliado')return{prazo_dias:prazo,pedidos:[]};
+      return{prazo_dias:prazo,codigo:me.codigo_afiliado,pct_indicacao:me.comissao==null?4:+me.comissao,pct_direta:me.comissao_direta==null?6:+me.comissao_direta,
+        pedidos:db.pedidos.filter(p=>p.afiliado_id===me.id).sort((a,b)=>b.criado_em.localeCompare(a.criado_em)).map(p=>({id:p.id,numero:p.numero,criado_em:p.criado_em,status:p.status,subtotal:p.subtotal,pct:p.comissao_afiliado,comissao:r2(p.subtotal*p.comissao_afiliado/100),origem:p.afiliado_origem,entregue_em:p.entregue_em,pago_em:p.afiliado_pago_em,meu:p.criado_por===me.id,cliente:String((p.cliente||{}).nome||'').split(' ')[0]}))}},
+    meu_link_afiliado:()=>euP().papel!=='afiliado'?[]:db.perfis.filter(g=>g.papel==='gerente'&&g.status==='ativo'&&g.fone).map(g=>({loja:(db.lojas.find(l=>l.id===g.loja_id)||{}).nome,gerente:g.nome,fone:g.fone})),
+    afiliado_do_cliente:a=>{if(!['proprietario','supervisor','gerente','vendedor'].includes(euP().papel))return null;const v=db.vinculos.find(x=>x.fone===fk(a.p_fone)&&x.ate>agora());const p=v&&perfil(v.afiliado_id);return p?{id:p.id,nome:p.nome,ate:v.ate}:null},
+    definir_comissao_afiliado:a=>{if(!veTodas())falha('Sem permissão.');const p=perfil(a.p_id);if(p){p.comissao=+a.p_indicacao;p.comissao_direta=+a.p_direta}return null},
+    pagar_comissoes_afiliado:a=>{if(!veTodas())falha('Sem permissão.');const prazo=+cfg('afiliado').prazo_dias||7;let n=0,tot=0;
+      db.pedidos.forEach(p=>{if(p.afiliado_id===a.p_afiliado&&p.status==='entregue'&&!p.afiliado_pago_em&&p.entregue_em&&new Date(p.entregue_em).getTime()+prazo*864e5<=Date.now()){p.afiliado_pago_em=agora();p.afiliado_pago_por=eu;n++;tot+=p.subtotal*p.comissao_afiliado/100}});return{qtd:n,total:r2(tot)}},
+    aprovar_pedido:a=>{const p=db.pedidos.find(x=>x.id===a.p_id);if(!p)falha('Pedido não encontrado.');if((p.aprovacao||{}).status!=='pendente')falha('Este pedido não está aguardando aprovação.');
+      const me=euP(),ok=['proprietario','supervisor'].includes(me.papel)||(p.aprovacao.exige==='gerente'&&me.papel==='gerente'&&me.loja_id===p.loja_id);
+      if(!ok)falha('Você não pode aprovar este pedido.');if(me.id===p.criado_por&&me.papel!=='proprietario')falha('Quem criou o pedido não pode aprová-lo.');
+      const pg=p.pagamento||{},parc=pg.forma==='Cartão de crédito'?(+pg.parcelas||1):1;
+      p.aprovacao={status:'aprovada',por:me.id,por_nome:me.nome,em:agora(),total:p.total,parcelas:parc,motivos:p.aprovacao.motivos};return p.aprovacao},
+    criar_convite:a=>{const c={id:nid('cv'),nome:a.p_nome,fone:String(a.p_fone||'').replace(/\D/g,''),papel:a.p_papel,loja_id:a.p_loja||null,comissao:a.p_comissao,status:'pendente',tipo:'novo',criado_em:agora(),expira_em:dias(-30)};db.convites.push(c);return c},
+    editar_convite:a=>{const c=db.convites.find(x=>x.id===a.p_id);if(!c)falha('Convite não encontrado.');Object.assign(c,{nome:a.p_nome,fone:String(a.p_fone||'').replace(/\D/g,''),papel:a.p_papel,loja_id:a.p_loja||null,comissao:a.p_comissao});return c},
+    cancelar_convite:a=>{db.convites=db.convites.filter(x=>x.id!==a.p_id);return null},
+    link_nova_senha:()=>{falha('Não disponível na demonstração.')}
+  };
+
+  /* ---------- consulta (mesmo jeito do cliente real) ---------- */
+  function tabela(t){return db[t]}
+  function Q(t){
+    const st={op:'select',f:[],ord:null,lim:null,corpo:null,um:null};
+    const q={
+      select(){return q},insert(o){st.op='insert';st.corpo=o;return q},update(o){st.op='update';st.corpo=o;return q},
+      eq(c,v){st.f.push(r=>r[c]===v);return q},
+      or(expr){const g=[...String(expr).matchAll(/and\(([^)]*)\)/g)].map(m=>m[1].split(',').map(x=>{const [c,op,...v]=x.split('.');return r=>{const a=r[c];if(a==null)return false;const b=v.join('.');return op==='gte'?a>=b:op==='lt'?a<b:true}}));st.f.push(r=>g.some(cs=>cs.every(f=>f(r))));return q},
+      order(c,o){st.ord=[c,!(o&&o.ascending===false)];return q},limit(n){st.lim=n;return q},
+      maybeSingle(){st.um='maybe';return q},single(){st.um='one';return q},
+      then(res,rej){let out;try{out=exec()}catch(e){out={data:null,error:{message:e.message,code:e.code||'P0001'}}}return Promise.resolve(out).then(res,rej)}
+    };
+    function exec(){
+      const T=tabela(t);if(!T)return{data:[],error:null};
+      const casa=r=>st.f.every(f=>f(r));
+      let rows;
+      if(st.op==='select'){rows=T.filter(r=>visivel(t,r)&&casa(r))}
+      else if(st.op==='insert'){
+        const c=st.corpo;let novo;
+        if(t==='pedidos')novo=criaPedido({...c,id:nid('p')});
+        else{novo={id:nid(t[0]),criado_em:agora(),...c};T.push(novo)}
+        rows=[novo];
+      }else{
+        rows=T.filter(r=>visivel(t,r)&&casa(r));
+        rows.forEach(r=>{
+          if(t==='pedidos'){const n={...r,...st.corpo},c=JSON.parse(JSON.stringify(r));const res=preparaPedido(n,c,'update');Object.assign(r,res)}
+          else if(t==='config'){r.valor=st.corpo.valor;r.atualizado_em=agora()}
+          else Object.assign(r,st.corpo);
+        });
+      }
+      if(st.ord){const [c,asc]=st.ord;rows=rows.slice().sort((a,b)=>{const x=a[c],y=b[c];return(x==null?-1:y==null?1:x<y?-1:x>y?1:0)*(asc?1:-1)})}
+      if(st.lim)rows=rows.slice(0,st.lim);
+      rows=JSON.parse(JSON.stringify(rows));
+      if(st.op!=='select')salva();
+      if(st.um==='one'){if(rows.length!==1)return{data:null,error:{message:'Registro não encontrado.',code:'PGRST116'}};return{data:rows[0],error:null}}
+      if(st.um==='maybe')return{data:rows[0]||null,error:null};
+      return{data:rows,error:null};
+    }
+    return q;
+  }
+
+  /* ---------- sessão e barra de papéis ---------- */
+  let cb=null;
+  const sessao=id=>({user:{id,email:perfil(id).email}});
+  function troca(id){eu=id;if(cb)cb('SIGNED_IN',sessao(id));pinta()}
+  function pinta(){document.querySelectorAll('#demo-bar [data-id]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===eu?'true':'false'))}
+  function barra(){
+    if(document.getElementById('demo-bar'))return;
+    const st=document.createElement('style');
+    st.textContent='#demo-bar{position:fixed;left:0;right:0;bottom:0;z-index:99;background:#111;color:#fff;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:center;flex-wrap:wrap;font:12px system-ui,sans-serif;border-top:2px solid #e5484d}#demo-bar b{color:#ffb4b6;margin-right:4px}#demo-bar button{font:600 12px system-ui,sans-serif;background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:14px;padding:6px 10px;cursor:pointer}#demo-bar button[aria-pressed=true]{background:#e5484d;border-color:#e5484d}body{padding-bottom:92px}';
+    document.head.appendChild(st);
+    const d=document.createElement('div');d.id='demo-bar';
+    d.innerHTML='<b>DEMONSTRAÇÃO · dados de mentira</b>'+PERS.map(p=>'<button data-id="'+p[1]+'">'+p[2]+'</button>').join('')+'<button data-zera="1">Zerar</button>';
+    d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.zera){try{sessionStorage.removeItem(KEY)}catch(x){}location.reload()}else troca(b.dataset.id)});
+    document.body.appendChild(d);pinta();
+  }
+  if(!db||!db.perfis)semear();
+
+  return{
+    from:Q,rpc:(n,a)=>{let out;try{if(!R[n])throw new Error('Função indisponível na demonstração.');out={data:JSON.parse(JSON.stringify(R[n](a||{})??null)),error:null};salva()}catch(e){out={data:null,error:{message:e.message,code:e.code||'P0001'}}}return Promise.resolve(out)},
+    channel(){const c={on(){return c},subscribe(){return c}};return c},removeChannel(){},
+    auth:{
+      onAuthStateChange(f){cb=f;setTimeout(()=>{f('INITIAL_SESSION',sessao(eu));barra()},0);return{data:{subscription:{unsubscribe(){}}}}},
+      signInWithPassword:async({email})=>{const p=db.perfis.find(x=>x.email===email);if(!p)return{data:null,error:{message:'Na demonstração, use os botões de papel na barra de baixo.'}};troca(p.id);return{data:{},error:null}},
+      signUp:async()=>({data:null,error:{message:'Cadastro não disponível na demonstração.'}}),
+      signOut:async()=>{troca('u-dono');return{error:null}},
+      updateUser:async()=>({data:{},error:null}),resetPasswordForEmail:async()=>({data:{},error:null})
+    }
+  };
+}
+
 sb.auth.onAuthStateChange((ev,session)=>{
   if(ev==='PASSWORD_RECOVERY'){S.recuperar=true;S.auth.erro=''}
   const novo=session?.user?.id||null;
   if(novo!==S.uid){
     S.uid=novo;S.email=session?.user?.email||'';
-    S.perfil=null;S.pedidos=[];S.perfis=[];S.view='painel';S.loja='todas';S.etapa='ativos';S.form=null;S.res=null;S.resMes=null;S.resLoja=null;S.clientes=[];S.cli=null;
+    S.perfil=null;S.cart=null;S.cartEq=null;S.cx={};S.pedidos=[];S.perfis=[];S.view='painel';S.loja='todas';S.etapa='ativos';S.form=null;S.res=null;S.resMes=null;S.resLoja=null;S.clientes=[];S.cli=null;
     if(canal){sb.removeChannel(canal);canal=null}
     if(novo)setTimeout(carregarTudo,0);else{S.carregado=false;setTimeout(async()=>{await carregarLojas();render()},0)}
   }

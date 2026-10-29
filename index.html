@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fechô</title>
 <meta name="theme-color" content="#15171a">
-<meta name="versao" content="2026-10-28.3">
+<meta name="versao" content="2026-10-28.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Fechô">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2323262a'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='700' font-size='38' text-anchor='middle' fill='%23d6b25a'%3EF%3C/text%3E%3C/svg%3E">
@@ -224,10 +224,10 @@ h2{font-size:22px;letter-spacing:.02em}
 .btn.pri.sm{letter-spacing:.04em;font-size:12.5px}
 .box{border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:var(--r);padding:20px;box-shadow:var(--sombra);gap:14px}
 .box.destaque{box-shadow:var(--sombra),inset 4px 0 0 var(--ouro)}
-.tiles{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.tiles{grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
 .tile{border:0;border-top:4px solid var(--line);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sombra);gap:6px}
 .tile.gold{border-top-color:var(--ouro);background:linear-gradient(180deg,color-mix(in srgb,var(--ouro) 14%,var(--surface)),var(--surface))}
-.tile b{font-size:36px;line-height:1.05;letter-spacing:.01em}
+.tile b{font-size:clamp(24px,2.5vw,32px);line-height:1.05;letter-spacing:.01em;white-space:nowrap}
 .tile .muted{font-size:12.5px;text-transform:uppercase;letter-spacing:.09em;font-weight:600}
 .pipe{gap:10px}
 .pipe button{border-radius:var(--r);padding:14px 14px;box-shadow:var(--sombra);border-color:transparent}
@@ -267,13 +267,21 @@ button.card:hover,a.card:hover{transform:translateY(-2px);box-shadow:var(--sombr
 .auth>div:first-child .muted{color:#b9bbc0;margin-top:12px;font-size:15px;position:relative}
 .auth .box{padding:24px}
 
+.var{font-size:12.5px;font-weight:700}.var.up{color:var(--ok)}.var.down{color:var(--bad)}
+.grafico{width:100%;height:auto}.grafico .bar{fill:color-mix(in srgb,var(--ouro) 50%,var(--surface-2))}.grafico .bar.top{fill:var(--ouro)}.grafico .bar.hoje{stroke:var(--fg);stroke-width:1.2}
+.grafico text{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
+.conv{display:flex;align-items:baseline;gap:12px}.conv b{font-family:var(--f-display);font-size:54px;line-height:1;color:var(--gold)}
+.dist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}.dist li{display:flex;flex-direction:column;gap:6px}
+.d-top{display:flex;justify-content:space-between;gap:10px;font-size:14px}.d-top span{color:var(--muted);white-space:nowrap}
+.dash2{display:grid;grid-template-columns:2fr 1fr;gap:20px}.dash3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+@media (max-width:760px){.dash2{grid-template-columns:1fr}}
 body.entrada .top-in{display:none}
 body.entrada .top{background:transparent;border-bottom:0;box-shadow:none}
 body.entrada .top:has(.upd[hidden]){display:none}
 /* aviso de nova versão */
 .upd{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;background:var(--gold-grad);color:#17181a;padding:9px 16px;font-weight:700;font-size:14px}
 .upd .btn{background:#17181a;color:var(--ouro);border-color:#17181a;min-height:34px;padding:5px 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;box-shadow:none}
-@media (max-width:560px){h1{font-size:28px}.tile b{font-size:30px}.auth .marca{font-size:60px}.brand b{font-size:28px}}
+@media (max-width:560px){h1{font-size:28px}.auth .marca{font-size:60px}.brand b{font-size:28px}}
 </style>
 </head>
 <body>
@@ -336,7 +344,7 @@ const lojaDe=id=>S.lojas.find(l=>l.id===id);
 const nomeLoja=l=>l?`${l.marca||''} ${l.nome||''}`.trim():'Loja';
 const pedido=id=>S.pedidos.find(p=>p.id===id);
 const perfilDe=id=>S.perfis.find(p=>p.id===id)||(S.perfil&&S.perfil.id===id?S.perfil:null);
-const normPed=p=>({...p,subtotal:+p.subtotal||0,frete:+p.frete||0,total:+p.total||0,comissao_vend:+p.comissao_vend||0,comissao_gerente:+p.comissao_gerente||0,historico:p.historico||[],cliente:p.cliente||{},itens:p.itens||[],nf:p.nf||{},entrega:p.entrega||{},pagamento:p.pagamento||{}});
+const normPed=p=>({...p,subtotal:+p.subtotal||0,frete:+p.frete||0,total:+p.total||0,comissao_vend:+p.comissao_vend||0,comissao_gerente:+p.comissao_gerente||0,gerentes:p.gerentes||[],historico:p.historico||[],cliente:p.cliente||{},itens:p.itens||[],nf:p.nf||{},entrega:p.entrega||{},pagamento:p.pagamento||{}});
 const normPerfil=p=>p&&({...p,comissao:p.comissao==null?null:+p.comissao});
 
 /* papéis */
@@ -347,7 +355,7 @@ const veTodas=()=>papel()==='proprietario'||papel()==='supervisor';
 const ehGerente=()=>papel()==='gerente';
 const podeVender=()=>veTodas()||(ativo()&&!!S.perfil.loja_id);
 const lojasVisiveis=()=>veTodas()?S.lojas.filter(l=>l.ativa!==false):S.lojas.filter(l=>l.id===S.perfil?.loja_id);
-const veComissao=p=>veTodas()||p.vendedor_id===S.uid||p.gerente_id===S.uid;
+const veComissao=p=>veTodas()||p.vendedor_id===S.uid||(p.gerentes||[]).some(g=>g.id===S.uid);
 
 let tt;function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2800)}
 function erroTxt(e){const c=e&&e.code;if(c==='42501')return'Sem permissão para esta ação.';if(c==='23514')return'Valor fora do permitido. Comissão: vendedor de 2% a 5%, gerente de 1% a 2%.';if(c==='P0001'&&e.message)return e.message;if(c==='23505')return'Já existe um registro igual (sigla repetida ou outro gerente ativo nesta loja).';return'Não foi possível salvar. Verifique a conexão e tente de novo.'}
@@ -629,7 +637,7 @@ function vPedido(){
       ${p.pagamento.forma?`<dt>Pagamento</dt><dd>${esc(p.pagamento.forma)} · ${esc(quando(p.pago_em))}</dd>`:''}
       ${nf.numero?`<dt>Nota fiscal</dt><dd>nº ${esc(nf.numero)}${nf.link?` · <a href="${esc(nf.link)}" target="_blank" rel="noopener">abrir</a>`:''}</dd>`:''}
       ${e.app?`<dt>Transporte</dt><dd>${esc(e.app)}${e.entregador?` · ${esc(e.entregador)}`:''}${e.link?` · <a href="${esc(e.link)}" target="_blank" rel="noopener">rastrear</a>`:e.codigo?` · <span class="mono">${esc(e.codigo)}</span>`:''}</dd>`:''}
-      ${veComissao(p)?`<dt>Comissões</dt><dd>${p.vendedor_id?`Vendedor ${pct(p.comissao_vend)} = ${brl(p.subtotal*p.comissao_vend/100)}`:'Sem vendedor'}${p.gerente_id?` · Gerente ${pct(p.comissao_gerente)} = ${brl(p.subtotal*p.comissao_gerente/100)}`:''}<br><span class="muted">Sobre ${brl(p.subtotal)} em produtos, sem frete.</span></dd>`:''}
+      ${veComissao(p)?`<dt>Comissões</dt><dd>${p.vendedor_id?`Vendedor ${pct(p.comissao_vend)} = ${brl(p.subtotal*p.comissao_vend/100)}`:'Sem vendedor'}${p.gerentes.filter(g=>veTodas()||g.id===S.uid).map(g=>` · Gerente${veTodas()?' '+esc(g.nome||''):''} ${pct(g.pct)} = ${brl(p.subtotal*g.pct/100)}`).join('')}<br><span class="muted">Sobre ${brl(p.subtotal)} em produtos, sem frete.</span></dd>`:''}
       ${p.obs?`<dt>Obs.</dt><dd>${esc(p.obs)}</dd>`:''}
     </dl>
   </section>
@@ -820,17 +828,17 @@ async function salvarPerfil(id){
 
 /* --- lojas (proprietários) --- */
 function vLojas(){
-  const gerenteDe=lid=>S.perfis.find(p=>p.papel==='gerente'&&p.status==='ativo'&&p.loja_id===lid);
+  const gerentesDe=lid=>S.perfis.filter(p=>p.papel==='gerente'&&p.status==='ativo'&&p.loja_id===lid);
   const novos=Object.keys(S.lj).filter(k=>k.startsWith('novo-'));
   const linhas=[...S.lojas.map(l=>l.id),...novos];
   return`<div class="row between"><h1>Lojas</h1><button class="btn sm" data-act="add-loja">+ Loja</button></div>
   <p class="muted">A sigla entra no número do pedido. O gerente da loja é definido em Equipe.</p>
-  ${linhas.map(id=>{const l=lojaDe(id)||{};const d=S.lj[id]||(S.lj[id]={nome:l.nome||'',marca:l.marca||'Flamengo',sigla:l.sigla||'',ativa:l.ativa!==false});const g=gerenteDe(id);
+  ${linhas.map(id=>{const l=lojaDe(id)||{};const d=S.lj[id]||(S.lj[id]={nome:l.nome||'',marca:l.marca||'Flamengo',sigla:l.sigla||'',ativa:l.ativa!==false});const gs=gerentesDe(id);
     return`<section class="box">
       <div class="grid3"><div class="f"><label for="l-${id}-nome">Nome da loja</label><input id="l-${id}-nome" data-le="${id}" data-lf="nome" value="${esc(d.nome)}"></div>
       <div class="f"><label for="l-${id}-marca">Rede</label><input id="l-${id}-marca" data-le="${id}" data-lf="marca" value="${esc(d.marca)}"></div>
       <div class="f"><label for="l-${id}-sigla">Sigla</label><input id="l-${id}-sigla" data-le="${id}" data-lf="sigla" value="${esc(d.sigla)}" class="mono" maxlength="4"></div></div>
-      <div class="row between"><span class="muted" style="font-size:13.5px">${g?`Gerente: <b>${esc(g.nome)}</b> · ${pct(g.comissao)}`:'Sem gerente definido'}</span>
+      <div class="row between"><span class="muted" style="font-size:13.5px">${gs.length?`${gs.length>1?'Gerentes':'Gerente'}: ${gs.map(g=>`<b>${esc(g.nome)}</b> ${pct(g.comissao)}`).join(' · ')}`:'Sem gerente definido'}</span>
       <label class="check"><input type="checkbox" data-le="${id}" data-lf="ativa" ${d.ativa?'checked':''}> Loja ativa</label></div>
       <div class="row"><button class="btn sm" data-act="salvar-loja" data-id="${id}">Salvar loja</button></div></section>`}).join('')}`;
 }
@@ -845,20 +853,86 @@ async function salvarLoja(id){
 /* --- resultados e comissões --- */
 async function carregarResultados(){
   const [y,m]=S.mes.split('-').map(Number);
-  const ini=new Date(y,m-1,1).toISOString(),fim=new Date(y,m,1).toISOString();
+  const ini=new Date(y,m-1,1),fim=new Date(y,m,1),ant=new Date(y,m-2,1);
   S.res=null;S.resMes=S.mes;render();
-  const{data,error}=await sb.from('pedidos').select('id,numero,loja_id,vendedor_id,vendedor_nome,gerente_id,comissao_vend,comissao_gerente,subtotal,pago_em,status,cliente').gte('pago_em',ini).lt('pago_em',fim).neq('status','cancelado').order('pago_em',{ascending:false});
-  if(error){toast('Não foi possível carregar os resultados.');S.res=[]}else S.res=(data||[]).map(normPed);
+  const cols='id,numero,loja_id,vendedor_id,vendedor_nome,gerente_id,gerentes,comissao_vend,comissao_gerente,subtotal,frete,total,pago_em,criado_em,status,cliente,cliente_id,itens,modo,pagamento';
+  const f=d=>d.toISOString();
+  const{data,error}=await sb.from('pedidos').select(cols).or(`and(pago_em.gte.${f(ant)},pago_em.lt.${f(fim)}),and(criado_em.gte.${f(ini)},criado_em.lt.${f(fim)})`).order('criado_em',{ascending:false}).limit(5000);
+  if(error){toast('Não foi possível carregar os resultados.');S.res=[];S.resPrev=[];S.resCriados=[]}
+  else{
+    const t=(data||[]).map(normPed),a0=+ant,i0=+ini,f0=+fim;
+    const pago=p=>p.pago_em&&p.status!=='cancelado',em=(iso,x,y)=>{const v=+new Date(iso);return v>=x&&v<y};
+    S.res=t.filter(p=>pago(p)&&em(p.pago_em,i0,f0));
+    S.resPrev=t.filter(p=>pago(p)&&em(p.pago_em,a0,i0));
+    S.resCriados=t.filter(p=>em(p.criado_em,i0,f0));
+  }
   if(S.view==='resultados')render();
 }
 function agrupar(ped){
   const lojas={},vends={};
   ped.forEach(p=>{
-    const l=lojas[p.loja_id]||(lojas[p.loja_id]={id:p.loja_id,n:0,base:0,comG:0,comV:0,ger:null});
-    l.n++;l.base+=p.subtotal;l.comG+=p.subtotal*p.comissao_gerente/100;l.comV+=p.subtotal*p.comissao_vend/100;if(p.gerente_id)l.ger=p.gerente_id;
+    const l=lojas[p.loja_id]||(lojas[p.loja_id]={id:p.loja_id,n:0,base:0,comG:0,comV:0,gers:{}});
+    l.n++;l.base+=p.subtotal;l.comV+=p.subtotal*p.comissao_vend/100;(p.gerentes||[]).forEach(g=>{const c=p.subtotal*g.pct/100;l.comG+=c;const x=l.gers[g.id]||(l.gers[g.id]={id:g.id,nome:g.nome,com:0});x.com+=c});
     if(p.vendedor_id){const v=vends[p.vendedor_id]||(vends[p.vendedor_id]={id:p.vendedor_id,nome:p.vendedor_nome,loja:p.loja_id,n:0,base:0,com:0});v.n++;v.base+=p.subtotal;v.com+=p.subtotal*p.comissao_vend/100}
   });
   return{lojas:Object.values(lojas).sort((a,b)=>b.base-a.base),vends:Object.values(vends).sort((a,b)=>b.base-a.base)};
+}
+/* --- indicadores do dashboard --- */
+const escopoRes=a=>{
+  if(!veTodas()&&!ehGerente())return a.filter(p=>p.vendedor_id===S.uid);
+  const lj=ehGerente()?S.perfil.loja_id:S.resLoja;return lj?a.filter(p=>p.loja_id===lj):a};
+const soma=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+const pecas=a=>soma(a,p=>soma(p.itens,i=>+i.qtd||0));
+const varPct=(a,b)=>b>0?(a-b)/b*100:null;
+const badgeVar=v=>v==null?'':`<span class="var ${v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${Math.abs(v).toFixed(1).replace('.',',')}%</span>`;
+function tilesV(arr){return`<div class="tiles">${arr.map(([rot,val,gold,v])=>`<div class="tile${gold?' gold':''}"><span class="muted">${rot}</span><b>${val}</b>${badgeVar(v)}</div>`).join('')}</div>`}
+function periodoAnt(){const hoje=new Date().getDate(),atual=S.mes===mesAtual();return S.resPrev.filter(p=>!atual||new Date(p.pago_em).getDate()<=hoje)}
+function ctxRes(){
+  const P=escopoRes(S.res),PP=escopoRes(periodoAnt()),C=escopoRes(S.resCriados);
+  const v=soma(P,p=>p.subtotal),vp=soma(PP,p=>p.subtotal),tk=P.length?v/P.length:0,tkp=PP.length?vp/PP.length:0,pc=pecas(P),pcp=pecas(PP);
+  return{P,PP,C,v,tk,pc,dV:varPct(v,vp),dN:varPct(P.length,PP.length),dT:varPct(tk,tkp),dP:varPct(pc,pcp)};
+}
+function fmtDur(min){if(!isFinite(min)||min<0)return'—';if(min<1)return'< 1 min';if(min<60)return`${Math.round(min)} min`;if(min<1440){const h=Math.floor(min/60),m=Math.round(min%60);return m?`${h} h ${m} min`:`${h} h`}return`${(min/1440).toFixed(1).replace('.',',')} dias`}
+function graficoDias(P){
+  const[y,m]=S.mes.split('-').map(Number),n=new Date(y,m,0).getDate();
+  const v=Array(n).fill(0);P.forEach(p=>{v[new Date(p.pago_em).getDate()-1]+=p.subtotal});
+  const max=Math.max(...v,1),topo=v.indexOf(Math.max(...v)),W=640,H=150,bw=W/n,hoje=S.mes===mesAtual()?new Date().getDate():0,dias=v.filter(x=>x>0).length;
+  const barras=v.map((x,i)=>{const h=x?Math.max(3,x/max*H):1.5;return`<rect class="bar${x&&i===topo?' top':''}${hoje===i+1?' hoje':''}" x="${(i*bw+bw*.15).toFixed(1)}" y="${(H-h).toFixed(1)}" width="${(bw*.7).toFixed(1)}" height="${h.toFixed(1)}" rx="2"><title>Dia ${i+1}: ${brl(x)}</title></rect>`}).join('');
+  const rot=v.map((x,i)=>(i===0||(i+1)%5===0)?`<text x="${(i*bw+bw/2).toFixed(1)}" y="${H+16}" text-anchor="middle">${i+1}</text>`:'').join('');
+  return`<section class="box"><span class="eyebrow">Vendas por dia</span><svg class="grafico" viewBox="0 0 ${W} ${H+22}" role="img" aria-label="Vendas em produtos por dia do mês">${barras}${rot}</svg>${dias?`<p class="muted" style="font-size:13.5px">Melhor dia: <b>${topo+1}</b>, com ${brl(v[topo])} · ${dias} ${dias===1?'dia':'dias'} com venda · média de ${brl(soma(P,p=>p.subtotal)/dias)} por dia vendido</p>`:'<p class="muted">Nenhuma venda paga neste mês.</p>'}</section>`;
+}
+function blocoFunil(C,P){
+  const criados=C.length,canc=C.filter(p=>p.status==='cancelado').length,aguard=C.filter(p=>p.status==='aguardando'),pagos=criados-canc-aguard.length;
+  const conv=criados?pagos/criados*100:0;
+  const tempos=P.filter(p=>p.criado_em&&p.pago_em).map(p=>(new Date(p.pago_em)-new Date(p.criado_em))/60000);
+  const medio=tempos.length?tempos.reduce((a,b)=>a+b,0)/tempos.length:NaN;
+  return`<section class="box"><span class="eyebrow">Conversão dos pedidos</span>
+    <div class="conv"><b>${conv.toFixed(0)}%</b><span class="muted">dos pedidos criados no mês já foram pagos</span></div>
+    <dl class="dl"><dt>Pedidos criados</dt><dd>${criados}</dd><dt>Pagos</dt><dd>${pagos}</dd><dt>Aguardando</dt><dd>${aguard.length} · ${brl(soma(aguard,p=>p.subtotal))}</dd><dt>Cancelados</dt><dd>${canc}</dd><dt>Tempo até pagar</dt><dd>${fmtDur(medio)} em média</dd></dl></section>`;
+}
+function distrib(titulo,pares){
+  const tot=soma(pares,x=>x[1]);if(!tot)return'';
+  return`<section class="box"><span class="eyebrow">${titulo}</span><ul class="dist">${[...pares].sort((a,b)=>b[1]-a[1]).map(([r,v,sub])=>`<li><span class="d-top"><b>${esc(r)}</b><span>${(v/tot*100).toFixed(0)}%${sub?' · '+esc(sub):''}</span></span><span class="rk-bar"><i style="width:${(v/tot*100).toFixed(1)}%"></i></span></li>`).join('')}</ul></section>`;
+}
+function agrup(P,chave,valor){const m={};P.forEach(p=>{const k=chave(p);m[k]=(m[k]||0)+valor(p)});return Object.entries(m)}
+function topProdutos(P){
+  const m={};P.forEach(p=>p.itens.forEach(i=>{const k=((i.ref||'')+'|'+(i.desc||'')).toLowerCase().trim(),q=+i.qtd||0,x=m[k]||(m[k]={desc:i.desc||'Sem descrição',ref:i.ref||'',q:0,v:0});x.q+=q;x.v+=q*(+i.preco||0)}));
+  const l=Object.values(m).sort((a,b)=>b.v-a.v).slice(0,8);
+  return ranking('Produtos mais vendidos',l.map(x=>({id:'',nome:x.desc,valor:x.v,sub:`${x.ref?'Ref. '+esc(x.ref)+' · ':''}${x.q} ${x.q===1?'peça':'peças'}`})));
+}
+function dashboard(X){
+  const{P,C}=X,mes0=new Date(S.mes+'-01T00:00:00'),mes1=new Date(mes0.getFullYear(),mes0.getMonth()+1,1);
+  const clientes=new Set(P.map(p=>p.cliente_id||foneWa(p.cliente.fone)||p.cliente.nome)).size;
+  const porCli={};P.forEach(p=>{const k=p.cliente_id||foneWa(p.cliente.fone)||p.cliente.nome;porCli[k]=(porCli[k]||0)+1});
+  const recompra=Object.values(porCli).filter(n=>n>1).length;
+  const novos=escopoRes(S.clientes.map(c=>({...c,vendedor_id:c.vendedor_id}))).filter(c=>{const d=new Date(c.criado_em);return d>=mes0&&d<mes1}).length;
+  const aberto=escopoRes(S.pedidos.filter(p=>p.status==='aguardando'));
+  const itensTam={};P.forEach(p=>p.itens.forEach(i=>{const t=String(i.tam||'').trim()||'Sem tamanho';itensTam[t]=(itensTam[t]||0)+(+i.qtd||0)}));
+  return tilesV([['Peças vendidas',X.pc,0,X.dP],['Clientes atendidos',clientes],['Novos cadastros',novos],['Aguardando pagamento agora',brl(soma(aberto,p=>p.subtotal)),0]])
+   +`<p class="muted" style="font-size:13px">${recompra?`${recompra} ${recompra===1?'cliente comprou':'clientes compraram'} mais de uma vez no mês. `:''}As setas comparam com o mesmo período do mês anterior.</p>`
+   +`<div class="dash2">${graficoDias(P)}${blocoFunil(C,P)}</div>`
+   +`<div class="dash3">${distrib('Forma de pagamento',agrup(P,p=>(p.pagamento&&p.pagamento.forma)||'Não informada',p=>p.total).map(([k,v])=>[k,v,`${P.filter(p=>((p.pagamento&&p.pagamento.forma)||'Não informada')===k).length} ped.`]))}${distrib('Tipo de entrega',agrup(P,p=>MODOS[p.modo]||p.modo||'—',p=>1))}${distrib('Tamanhos mais vendidos',Object.entries(itensTam).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>[k,v,`${v} ${v===1?'peça':'peças'}`]))}</div>`
+   +topProdutos(P);
 }
 const ticket=r=>r.n?r.base/r.n:0;
 const nomeLj=id=>(lojaDe(id)||{}).nome||'Loja';
@@ -883,8 +957,9 @@ function vResultados(){
   if(!veTodas()&&!ehGerente()){
     const meus=ped.filter(p=>p.vendedor_id===S.uid);const base=meus.reduce((s,p)=>s+p.subtotal,0);const com=meus.reduce((s,p)=>s+p.subtotal*p.comissao_vend/100,0);
     const abertos=S.pedidos.filter(p=>p.vendedor_id===S.uid&&p.status==='aguardando');
-    html+=tiles([['Minha comissão',brl(com),1],['Minhas vendas em produtos',brl(base)],['Pedidos pagos',meus.length],['Ticket médio',brl(meus.length?base/meus.length:0)]]);
+    const X=ctxRes();html+=tilesV([['Minha comissão',brl(com),1],['Minhas vendas em produtos',brl(base),0,X.dV],['Pedidos pagos',meus.length,0,X.dN],['Ticket médio',brl(meus.length?base/meus.length:0),0,X.dT]]);
     if(abertos.length)html+=`<p class="notice warn">${abertos.length} ${abertos.length===1?'pedido aguardando':'pedidos aguardando'} pagamento, somando ${brl(abertos.reduce((s,p)=>s+p.subtotal,0))} em produtos.</p>`;
+    html+=dashboard(X);
     html+=meus.length?`<section class="box"><span class="eyebrow">Meus pedidos pagos no mês</span><div class="tabw"><table class="tab"><thead><tr><th>Pedido</th><th>Cliente</th><th>Pago em</th><th class="r">Produtos</th><th class="r">Comissão</th></tr></thead><tbody>
       ${meus.map(p=>`<tr><td class="mono">${esc(p.numero)}</td><td>${esc(p.cliente.nome||'')}</td><td>${new Date(p.pago_em).toLocaleDateString('pt-BR')}</td><td class="r">${brl(p.subtotal)}</td><td class="r">${brl(p.subtotal*p.comissao_vend/100)}</td></tr>`).join('')}</tbody></table></div></section>`:`<div class="empty">Nenhuma venda paga neste mês ainda.</div>`;
     return html+nota;
@@ -893,15 +968,16 @@ function vResultados(){
   /* gerente ou detalhe de uma loja */
   const lojaFoco=ehGerente()?S.perfil.loja_id:S.resLoja;
   if(lojaFoco){
-    const pl=ped.filter(p=>p.loja_id===lojaFoco);const g=agrupar(pl);const L=g.lojas[0]||{n:0,base:0,comG:0,comV:0,ger:null};
+    const pl=ped.filter(p=>p.loja_id===lojaFoco);const g=agrupar(pl);const L=g.lojas[0]||{n:0,base:0,comG:0,comV:0,gers:{}};
     const totalRede=ped.reduce((s,p)=>s+p.subtotal,0);
     if(!ehGerente())html+=`<div class="row"><button class="btn ghost sm" data-act="res-voltar">← Todas as lojas</button></div>`;
     html+=`<h2>${esc(nomeLoja(lojaDe(lojaFoco)))}</h2>`;
-    const rows=[['Vendas em produtos',brl(L.base)],['Pedidos pagos',L.n],['Ticket médio',brl(ticket(L))]];
-    if(ehGerente())rows.push(['Minha comissão',brl(L.comG),1]);
+    const X=ctxRes();const rows=[['Vendas em produtos',brl(L.base),0,X.dV],['Pedidos pagos',L.n,0,X.dN],['Ticket médio',brl(ticket(L)),0,X.dT]];
+    if(ehGerente())rows.push(['Minha comissão',brl((L.gers[S.uid]||{}).com||0),1]);
     else rows.push(['Comissões da loja',brl(L.comG+L.comV),1]);
-    html+=tiles(rows);
-    if(!ehGerente()&&totalRede)html+=`<p class="muted">${(L.base/totalRede*100).toFixed(1).replace('.',',')}% das vendas da rede no mês · gerente: ${L.ger?esc(nomeGer(L.ger))+` (${brl(L.comG)})`:'sem gerente'}</p>`;
+    html+=tilesV(rows);
+    if(!ehGerente()&&totalRede)html+=`<p class="muted">${(L.base/totalRede*100).toFixed(1).replace('.',',')}% das vendas da rede no mês · ${Object.values(L.gers).length>1?'gerentes':'gerente'}: ${Object.values(L.gers).length?Object.values(L.gers).map(x=>`${esc(x.nome||'gerente')} (${brl(x.com)})`).join(', '):'sem gerente'}</p>`;
+    html+=dashboard(X);
     const semVend=pl.filter(p=>!p.vendedor_id);
     html+=ranking('Ranking de vendedores da loja',linhasVend(g.vends,false))||`<div class="empty">Nenhuma venda paga nesta loja no mês.</div>`;
     if(semVend.length)html+=`<p class="muted">Vendas da loja sem vendedor: ${semVend.length} ${semVend.length===1?'pedido':'pedidos'}, ${brl(semVend.reduce((s,p)=>s+p.subtotal,0))}.</p>`;
@@ -912,8 +988,9 @@ function vResultados(){
   const g=agrupar(ped);
   const base=g.lojas.reduce((s,l)=>s+l.base,0),n=g.lojas.reduce((s,l)=>s+l.n,0);
   const comV=g.lojas.reduce((s,l)=>s+l.comV,0),comG=g.lojas.reduce((s,l)=>s+l.comG,0);
-  html+=tiles([['Vendas em produtos',brl(base)],['Pedidos pagos',n],['Ticket médio',brl(n?base/n:0)],['Comissões a pagar',brl(comV+comG),1]]);
+  const X=ctxRes();html+=tilesV([['Vendas em produtos',brl(base),0,X.dV],['Pedidos pagos',n,0,X.dN],['Ticket médio',brl(n?base/n:0),0,X.dT],['Comissões a pagar',brl(comV+comG),1]]);
   html+=`<p class="muted">Vendedores ${brl(comV)} · Gerentes ${brl(comG)}</p>`;
+  html+=dashboard(X);
   if(!ped.length)return html+`<div class="empty">Nenhum pedido pago neste mês.</div>`+nota;
   const lojasSemVenda=lojasVisiveis().filter(l=>!g.lojas.some(x=>x.id===l.id));
   html+=ranking('Ranking de lojas · toque para abrir',g.lojas.map(l=>({id:l.id,nome:nomeLj(l.id),valor:l.base,sub:`${l.n} ${l.n===1?'pedido':'pedidos'} · ticket ${brl(ticket(l))} · ${(l.base/base*100).toFixed(1).replace('.',',')}% da rede`})),'res-loja');

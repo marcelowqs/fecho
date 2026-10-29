@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fechô</title>
 <meta name="theme-color" content="#15171a">
-<meta name="versao" content="2026-10-28.5">
+<meta name="versao" content="2026-10-29.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Fechô">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2323262a'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='700' font-size='38' text-anchor='middle' fill='%23d6b25a'%3EF%3C/text%3E%3C/svg%3E">
@@ -267,14 +267,17 @@ button.card:hover,a.card:hover{transform:translateY(-2px);box-shadow:var(--sombr
 .auth>div:first-child .muted{color:#b9bbc0;margin-top:12px;font-size:15px;position:relative}
 .auth .box{padding:24px}
 
-.var{font-size:12.5px;font-weight:700}.var.up{color:var(--ok)}.var.down{color:var(--bad)}
+.var{font-size:12.5px;font-weight:700}.var.up{color:var(--ok)}.var.down{color:var(--bad)}.var.neutra{color:var(--muted);font-weight:600}
 .grafico{width:100%;height:auto}.grafico .bar{fill:color-mix(in srgb,var(--ouro) 50%,var(--surface-2))}.grafico .bar.top{fill:var(--ouro)}.grafico .bar.hoje{stroke:var(--fg);stroke-width:1.2}
 .grafico text{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
 .conv{display:flex;align-items:baseline;gap:12px}.conv b{font-family:var(--f-display);font-size:54px;line-height:1;color:var(--gold)}
 .dist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}.dist li{display:flex;flex-direction:column;gap:6px}
 .d-top{display:flex;justify-content:space-between;gap:10px;font-size:14px}.d-top span{color:var(--muted);white-space:nowrap}
-.dash2{display:grid;grid-template-columns:2fr 1fr;gap:20px}.dash3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.dash2{display:grid;grid-template-columns:2fr 1fr;gap:20px}.dash2e{display:grid;grid-template-columns:1fr}.dash3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
 @media (max-width:760px){.dash2{grid-template-columns:1fr}}
+.obs-item{margin-top:6px;padding:7px 10px;border-radius:8px;background:var(--warn-soft);color:var(--warn);font-size:13.5px;font-weight:500}
+.tem-obs{color:var(--warn)}
+.chip{font-size:13px;padding:6px 12px}
 body.entrada .top-in{display:none}
 body.entrada .top{background:transparent;border-bottom:0;box-shadow:none}
 body.entrada .top:has(.upd[hidden]){display:none}
@@ -308,7 +311,10 @@ const LABEL={...Object.fromEntries(ETAPAS),cancelado:'Cancelado'};
 const MODOS={motoboy:'Motoboy por app',transportadora:'Correios / transportadora',retirada:'Retirada na loja'};
 const APPS=['Lalamove','Uber Direct','99Entrega','Loggi','Correios','Transportadora','Outro'];
 const TAMS=['PP','P','M','G','GG','XG','XGG','2','4','6','8','10','12','14','16','36','38','40','42','44','Único'];
-const PAPEIS={proprietario:'Proprietário',supervisor:'Supervisor',gerente:'Gerente',vendedor:'Vendedor'};
+const OBS_RAPIDAS=['Embalagem de presente','Personalizar nome e número','Cartão com mensagem'];
+const PAPEIS={proprietario:'Proprietário',supervisor:'Supervisor',gerente:'Gerente',vendedor:'Vendedor',afiliado:'Afiliado'};
+const COM_FAIXA={vendedor:[2,5],gerente:[1,2],supervisor:[0,5],afiliado:[1,10]};
+const comErro=(pa,c)=>{const f=COM_FAIXA[pa];return f&&!(c>=f[0]&&c<=f[1])?`Comissão do ${PAPEIS[pa].toLowerCase()}: de ${f[0]}% a ${f[1]}%.`:''};
 const STATUS_P={pendente:'Aguardando liberação',ativo:'Ativo',inativo:'Inativo'};
 
 const mesAtual=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`};
@@ -326,7 +332,7 @@ async function checaVersao(){
 }
 const S={uid:null,email:'',perfil:null,lojas:[],perfis:[],pedidos:[],carregado:false,recuperar:false,
   view:'painel',loja:'todas',etapa:'ativos',busca:'',atual:null,form:null,erro:'',confirmaCancel:false,busy:false,
-  auth:{modo:'entrar',erro:'',ok:''},mes:mesAtual(),res:null,resMes:null,resLoja:null,eq:{},lj:{},conv:null,convites:[],cv:null,reset:{},clientes:[],cli:null,cliBusca:'',cliBuscaForm:''};
+  auth:{modo:'entrar',erro:'',ok:''},mes:mesAtual(),res:null,resMes:null,resLoja:null,eq:{},lj:{},conv:null,convites:[],cv:null,reset:{},clientes:[],cli:null,cliBusca:'',cliBuscaForm:'',cx:{},cart:null,cartEq:null};
 
 /* ===== utilidades ===== */
 const $=s=>document.querySelector(s);
@@ -344,7 +350,7 @@ const lojaDe=id=>S.lojas.find(l=>l.id===id);
 const nomeLoja=l=>l?`${l.marca||''} ${l.nome||''}`.trim():'Loja';
 const pedido=id=>S.pedidos.find(p=>p.id===id);
 const perfilDe=id=>S.perfis.find(p=>p.id===id)||(S.perfil&&S.perfil.id===id?S.perfil:null);
-const normPed=p=>({...p,subtotal:+p.subtotal||0,frete:+p.frete||0,total:+p.total||0,comissao_vend:+p.comissao_vend||0,comissao_gerente:+p.comissao_gerente||0,gerentes:p.gerentes||[],historico:p.historico||[],cliente:p.cliente||{},itens:p.itens||[],nf:p.nf||{},entrega:p.entrega||{},pagamento:p.pagamento||{}});
+const normPed=p=>({...p,subtotal:+p.subtotal||0,frete:+p.frete||0,total:+p.total||0,comissao_vend:+p.comissao_vend||0,comissao_gerente:+p.comissao_gerente||0,gerentes:p.gerentes||[],supervisores:p.supervisores||[],historico:p.historico||[],cliente:p.cliente||{},itens:p.itens||[],nf:p.nf||{},entrega:p.entrega||{},pagamento:p.pagamento||{},aprovacao:p.aprovacao||{}});
 const normPerfil=p=>p&&({...p,comissao:p.comissao==null?null:+p.comissao});
 
 /* papéis */
@@ -353,9 +359,10 @@ const papel=()=>ativo()?S.perfil.papel:null;
 const ehDono=()=>papel()==='proprietario';
 const veTodas=()=>papel()==='proprietario'||papel()==='supervisor';
 const ehGerente=()=>papel()==='gerente';
-const podeVender=()=>veTodas()||(ativo()&&!!S.perfil.loja_id);
-const lojasVisiveis=()=>veTodas()?S.lojas.filter(l=>l.ativa!==false):S.lojas.filter(l=>l.id===S.perfil?.loja_id);
-const veComissao=p=>veTodas()||p.vendedor_id===S.uid||(p.gerentes||[]).some(g=>g.id===S.uid);
+const podeVender=()=>veTodas()||(ativo()&&(!!S.perfil.loja_id||S.perfil.papel==='afiliado'));
+const lojasVisiveis=()=>veTodas()||papel()==='afiliado'?S.lojas.filter(l=>l.ativa!==false):S.lojas.filter(l=>l.id===S.perfil?.loja_id);
+const quemVende=p=>p.vendedor_nome||(p.afiliado_nome?`Afiliado ${p.afiliado_nome}`:'venda da loja');
+const veComissao=p=>veTodas()||p.vendedor_id===S.uid||p.afiliado_id===S.uid||(p.gerentes||[]).some(g=>g.id===S.uid);
 
 let tt;function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2800)}
 function erroTxt(e){const c=e&&e.code;if(c==='42501')return'Sem permissão para esta ação.';if(c==='23514')return'Valor fora do permitido. Comissão: vendedor de 2% a 5%, gerente de 1% a 2%.';if(c==='P0001'&&e.message)return e.message;if(c==='23505')return'Já existe um registro igual (sigla repetida ou outro gerente ativo nesta loja).';return'Não foi possível salvar. Verifique a conexão e tente de novo.'}
@@ -367,14 +374,15 @@ async function gravar(fn,okMsg){
 }
 
 /* ===== mensagens ao cliente ===== */
-function linhasItens(p){return(p.itens||[]).map(i=>`• ${i.qtd}x ${i.desc}${i.ref?` (Ref. ${i.ref})`:''}${i.tam?` – Tam. ${i.tam}`:''} – ${brl(i.preco*i.qtd)}`).join('\n')}
+function linhasItens(p){return(p.itens||[]).map(i=>`• ${i.qtd}x ${i.desc}${i.ref?` (Ref. ${i.ref})`:''}${i.tam?` – Tam. ${i.tam}`:''} – ${brl(i.preco*i.qtd)}${i.obs?`\n   Obs.: ${i.obs}`:''}`).join('\n')}
 function enderecoTxt(c){return[c.endereco,c.bairro,c.cidade].filter(Boolean).join(', ')+(c.cep?` – CEP ${c.cep}`:'')}
 function msgResumo(p){
   const l=lojaDe(p.loja_id),c=p.cliente;
   const frete=p.modo==='retirada'?`Retirada na loja ${l?l.nome:''}: sem frete`:`Frete (${p.modo==='motoboy'?'entrega por motoboy':'envio'}): ${brl(p.frete)}`;
-  let t=`Olá, ${primeiro(c.nome)}! Aqui é ${p.vendedor_nome||'a equipe'}, da loja ${nomeLoja(l)}.\n\nResumo do seu pedido nº ${p.numero}:\n${linhasItens(p)}\n\nSubtotal: ${brl(p.subtotal)}\n${frete}\n*Total: ${brl(p.total)}*`;
+  let t=`Olá, ${primeiro(c.nome)}! Aqui é ${p.vendedor_nome||p.afiliado_nome||'a equipe'}, da loja ${nomeLoja(l)}.\n\nResumo do seu pedido nº ${p.numero}:\n${linhasItens(p)}\n\nSubtotal: ${brl(p.subtotal)}\n${frete}\n*Total: ${brl(p.total)}*`;
   if(p.modo!=='retirada'&&enderecoTxt(c))t+=`\n\nEntrega em: ${enderecoTxt(c)}`;
-  t+=p.link_pagamento?`\n\nPague com cartão ou Pix por este link seguro:\n${p.link_pagamento}\n\nAssim que o pagamento for confirmado, separamos seu pedido e enviamos a nota fiscal.`:`\n\nEm seguida envio o link para pagamento com cartão ou Pix.`;
+  const fp=(p.pagamento&&p.pagamento.forma)?txtPagamento(p):'';
+  t+=p.link_pagamento?`\n\n${fp?`Forma de pagamento: *${fp}*\nLink seguro para pagar:`:'Pague com cartão ou Pix por este link seguro:'}\n${p.link_pagamento}\n\nAssim que o pagamento for confirmado, separamos seu pedido e enviamos a nota fiscal.`:`\n\n${fp?`Forma de pagamento: *${fp}*. Em seguida envio o link para você pagar.`:'Em seguida envio o link para pagamento com cartão ou Pix.'}`;
   return t}
 function msgAtual(p){
   const c=p.cliente,l=lojaDe(p.loja_id),nf=p.nf,e=p.entrega;
@@ -393,13 +401,167 @@ async function carregarTudo(){
   const [pf,lj]=await Promise.all([sb.from('perfis').select('*').eq('id',S.uid).maybeSingle(),sb.from('lojas').select('*').order('nome')]);
   S.perfil=normPerfil(pf.data);S.lojas=lj.data||[];
   if(ativo()){
-    await Promise.all([carregarPedidos(),carregarClientes(),veTodas()||ehGerente()?carregarPerfis():null]);
+    if(papel()==='afiliado'){await Promise.all([carregarMinhasVendas(),carregarPedidos(),carregarConfig()])}
+    else await Promise.all([carregarPedidos(),carregarClientes(),carregarRegras(),carregarConfig(),veTodas()||ehGerente()?carregarPerfis():null,veTodas()||ehGerente()?carregarAfiliados():null]);
     if(!veTodas()&&S.perfil.loja_id)S.loja=S.perfil.loja_id;
-    assinar();
+    if(papel()!=='afiliado')assinar();
   }
   S.carregado=true;render();
 }
 async function carregarPedidos(){const{data,error}=await sb.from('pedidos').select('*').order('criado_em',{ascending:false}).limit(500);if(error){toast('Não foi possível carregar os pedidos.');return}S.pedidos=(data||[]).map(normPed)}
+async function carregarAfiliados(){try{const{data}=await sb.rpc('lista_afiliados');S.afiliados=data||[]}catch(e){S.afiliados=[]}}
+async function carregarConfig(){try{const{data}=await sb.from('config').select('*').eq('chave','afiliado').maybeSingle();S.config=Object.assign({prazo_dias:7},data&&data.valor||{})}catch(e){S.config={prazo_dias:7}}}
+async function carregarMinhasVendas(){try{const{data,error}=await sb.rpc('minhas_vendas_afiliado');if(error)throw error;S.minhas=data||{prazo_dias:7,pedidos:[]};const l=await sb.rpc('meu_link_afiliado');S.linksAf=Array.isArray(l.data)?l.data:[]}catch(e){S.minhas={prazo_dias:7,pedidos:[],erro:true};S.linksAf=[]}}
+const dtBR=iso=>iso?new Date(iso).toLocaleDateString('pt-BR'):'';
+function sitCom(status,entregueEm,pagoEm,prazo){
+  if(status==='cancelado')return{k:'cancelado',txt:'Pedido cancelado'};
+  if(pagoEm)return{k:'paga',txt:'Paga em '+dtBR(pagoEm)};
+  if(status!=='entregue'||!entregueEm)return{k:'andamento',txt:'Pedido em andamento'};
+  const lib=new Date(entregueEm).getTime()+prazo*864e5;
+  return lib<=Date.now()?{k:'liberada',txt:'Liberada para pagamento'}:{k:'prazo',txt:'Libera em '+dtBR(new Date(lib).toISOString())}}
+let vTm;
+
+async function carregarCart(){if(S.cartCarregando)return;S.cartCarregando=true;try{const{data,error}=await sb.rpc('minha_carteira');if(error)throw error;S.cart=data||{erro:true}}catch(e){S.cart={erro:true}}S.cartCarregando=false;if(['painel','carteira'].includes(S.view)||papel()==='afiliado')render()}
+function blocoCarteiraResumo(){
+  if(!S.cart&&!S.cartCarregando&&S.uid)carregarCart();
+  const C=S.cart;if(!C||C.erro)return'';
+  const disp=+C.disponivel||0,apos=+C.a_liberar||0,sol=+C.em_saque||0;
+  return`<button class="card" data-act="ir" data-v="carteira" style="width:100%;text-align:left;margin-bottom:14px"><div class="card-top"><span class="eyebrow" style="margin:0">Minhas comissões</span><span class="muted">Ver carteira →</span></div>
+  <div class="card-mid"><strong style="white-space:normal">Disponível para sacar</strong><span class="total">${brl(disp)}</span></div>
+  <div class="card-sub">A receber (pedidos ainda no prazo): <b>${brl(apos)}</b>${sol?` · saque em análise: ${brl(sol)}`:''}</div></button>`}
+/* ---------- Carteira: saldo de comissões, chave Pix e pedido de saque ---------- */
+async function carregarCarteira(){
+  try{const{data,error}=await sb.rpc('minha_carteira');if(error)throw error;S.cart=data||{erro:true}}catch(e){S.cart={erro:true}}
+  if(veTodas()){try{const{data,error}=await sb.rpc('carteiras_resumo');if(error)throw error;S.cartEq=data||{pessoas:[],saques:[]}}catch(e){S.cartEq={pessoas:[],saques:[],erro:true}}}
+}
+const TIPOS_PIX={celular:'Celular',cpf:'CPF',email:'E-mail',aleatoria:'Chave aleatória'};
+const fmtChave=(t,c)=>{c=c||'';if(t==='cpf'&&c.length===11)return c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');if(t==='celular'&&c.length>=10)return c.replace(/(\d{2})(\d{4,5})(\d{4})/,'($1) $2-$3');return c};
+const cxv=(id,d)=>S.cx[id]!=null?S.cx[id]:(d==null?'':d);
+const numBR=x=>{x=String(x==null?'':x).trim().replace(/[R$\s]/g,'');if(!x)return NaN;if(x.indexOf(',')>=0)x=x.replace(/\./g,'').replace(',','.');return parseFloat(x)};
+const vlBR=n=>String((+n||0).toFixed(2)).replace('.',',');
+function vCarteira(){
+  const C=S.cart;
+  if(!C)return`<div class="empty">Carregando…</div>`;
+  if(C.erro)return`<section class="box"><span class="eyebrow">Carteira</span><p class="notice warn">Não foi possível carregar a carteira agora. Toque em Atualizar para tentar de novo.</p></section>`;
+  const k=C.chave,disp=+C.disponivel||0,min=+C.saque_min||10,prazo=C.prazo_dias||7;
+  const nomePapel=x=>(PAPEIS[x]||x||'').toLowerCase();
+  const mov=[
+    ...(C.comissoes||[]).map(x=>({d:x.criado_em,t:`Comissão de ${nomePapel(x.papel)} · pedido ${x.numero}`,v:+x.valor,s:x.liberada?'Disponível':x.libera_em?'Libera em '+dtBR(x.libera_em):'Pedido em andamento',k:x.liberada?'entregue':'aguardando'})),
+    ...(C.saques||[]).map(x=>({d:x.criado_em,t:'Saque via Pix'+(x.obs?' · '+x.obs:''),v:-x.valor,s:{solicitado:'Aguardando pagamento',pago:'Pago em '+dtBR(x.resolvido_em),recusado:'Recusado'}[x.status]||x.status,k:x.status==='pago'?'entregue':x.status==='recusado'?'cancelado':'aguardando',riscado:x.status==='recusado'})),
+    ...(C.ajustes_lista||[]).map(x=>({d:x.criado_em,t:'Ajuste · '+x.motivo,v:+x.valor,s:'Lançado pela administração',k:'entregue'}))
+  ].sort((a,b)=>new Date(b.d)-new Date(a.d));
+  const sinal=v=>(v<0?'− ':'+ ')+brl(Math.abs(v));
+  const tp=cxv('cx-tipo',k?k.tipo:'celular');
+  const confV=S.cx.conf;
+  return`<section class="box"><span class="eyebrow">Minha carteira</span><h1>${brl(disp)}</h1>
+    <p class="muted">Disponível para sacar agora. A comissão de cada pedido entra aqui ${prazo} dias depois da entrega ao cliente.</p></section>
+  ${tilesV([['A receber (no prazo)',brl(C.a_liberar),1],['Total a receber',brl(disp+(+C.a_liberar||0))],['Saque em análise',brl(C.em_saque)],['Já sacado',brl(C.sacado)]])}
+  <section class="box"><span class="eyebrow">Sacar via Pix</span>
+    ${k?`<p class="muted">Chave cadastrada: <b>${esc(TIPOS_PIX[k.tipo]||k.tipo)}</b> · <span class="mono">${esc(fmtChave(k.tipo,k.chave))}</span></p>`:`<p class="notice warn">Cadastre sua chave Pix abaixo para poder sacar.</p>`}
+    <div class="grid2"><div class="f"><label for="cx-tipo">Tipo da chave</label><select id="cx-tipo">${Object.entries(TIPOS_PIX).map(([a,b])=>`<option value="${a}" ${tp===a?'selected':''}>${b}</option>`).join('')}</select></div>
+    <div class="f"><label for="cx-chave">${k?'Nova chave Pix':'Chave Pix'}</label><input id="cx-chave" value="${esc(cxv('cx-chave'))}" autocomplete="off" placeholder="${tp==='email'?'nome@email.com':tp==='aleatoria'?'chave aleatória':'somente números'}"></div></div>
+    <div class="row"><button class="btn sm" data-act="cart-pix-salvar">Salvar chave</button></div>
+    ${k?`<hr style="border:0;border-top:1px solid var(--line,#ddd);margin:14px 0">
+    <div class="f"><label for="cx-valor">Valor do saque (R$)</label><input id="cx-valor" inputmode="decimal" value="${esc(cxv('cx-valor'))}" placeholder="Mínimo ${vlBR(min)}"></div>
+    ${confV?`<div class="confirma"><span>Pedir saque de <b>${brl(confV)}</b> para a chave ${esc(fmtChave(k.tipo,k.chave))}? O valor sai do seu saldo agora e o Pix é feito pela administração.</span><button class="btn sm pri" data-act="cart-sacar-sim">Sim, pedir saque</button><button class="btn sm ghost" data-act="cart-sacar-nao">Cancelar</button></div>`
+    :`<div class="row"><button class="btn sm pri" data-act="cart-sacar" ${disp<min?'disabled':''}>Pedir saque</button><button class="btn sm ghost" data-act="cart-tudo" ${disp<min?'disabled':''}>Sacar tudo</button></div>${disp<min?`<p class="muted">Você poderá sacar quando o saldo disponível chegar a ${brl(min)}.</p>`:''}`}`:''}
+  </section>
+  <section class="box"><span class="eyebrow">Extrato</span>
+    <div class="list">${mov.length?mov.map(m=>`<div class="card" style="cursor:default"><div class="card-top"><span class="muted">${esc(dtBR(m.d))}</span><span class="pill st-${m.k}">${esc(m.s)}</span></div><div class="card-mid"><strong style="white-space:normal">${esc(m.t)}</strong><span class="total" ${m.riscado?'style="text-decoration:line-through;opacity:.6"':''}>${sinal(m.v)}</span></div></div>`).join(''):`<div class="empty">Ainda não há movimentos. As comissões aparecem aqui assim que um pedido seu for pago.</div>`}</div></section>
+  ${vCarteiraEquipe()}`
+}
+function vCarteiraEquipe(){
+  if(!veTodas())return'';
+  const E=S.cartEq;
+  if(!E)return`<section class="box"><span class="eyebrow">Carteiras da equipe</span><div class="empty">Carregando…</div></section>`;
+  if(E.erro)return`<section class="box"><span class="eyebrow">Carteiras da equipe</span><p class="notice warn">Não foi possível carregar as carteiras da equipe.</p></section>`;
+  const dono=ehDono(),R=S.cx.res;
+  const abertos=(E.saques||[]).filter(x=>x.status==='solicitado'),hist=(E.saques||[]).filter(x=>x.status!=='solicitado').slice(0,15);
+  const totDisp=(E.pessoas||[]).reduce((s,x)=>s+(+x.disponivel||0),0),totSol=abertos.reduce((s,x)=>s+(+x.valor||0),0);
+  const item=x=>`<div class="card" style="cursor:default"><div class="card-top"><span class="muted">${esc(PAPEIS[x.papel]||x.papel)} · ${esc(dtBR(x.criado_em))}</span><span class="pill st-${x.status==='pago'?'entregue':x.status==='recusado'?'cancelado':'aguardando'}">${x.status==='solicitado'?'Aguardando Pix':x.status==='pago'?'Pago em '+esc(dtBR(x.resolvido_em)):'Recusado'}</span></div>
+    <div class="card-mid"><strong>${esc(x.nome)}</strong><span class="total">${brl(x.valor)}</span></div>
+    <div class="card-sub">${esc(TIPOS_PIX[x.chave_tipo]||x.chave_tipo)}: <span class="mono">${esc(fmtChave(x.chave_tipo,x.chave))}</span> <button class="link" data-act="copiar-txt" data-t="${esc(x.chave)}">copiar chave</button>${x.obs?' · '+esc(x.obs):''}</div>
+    ${x.status==='solicitado'&&dono?(R&&R.id===x.id?(R.a==='pago'?`<div class="confirma"><span>Confirmar que o Pix de ${brl(x.valor)} já foi enviado a ${esc(primeiro(x.nome))}?</span><button class="btn sm pri" data-act="cart-res-sim">Sim, já paguei</button><button class="btn sm ghost" data-act="cart-res-nao">Voltar</button></div>`
+      :`<div class="confirma"><input id="cx-obs" value="${esc(cxv('cx-obs'))}" placeholder="Motivo da recusa"><button class="btn sm pri" data-act="cart-res-sim">Recusar saque</button><button class="btn sm ghost" data-act="cart-res-nao">Voltar</button></div>`)
+      :`<div class="row"><button class="btn sm pri" data-act="cart-res" data-id="${esc(x.id)}" data-a="pago">Paguei o Pix</button><button class="btn sm ghost" data-act="cart-res" data-id="${esc(x.id)}" data-a="recusado">Recusar</button></div>`):''}</div>`;
+  const pess=(E.pessoas||[]).slice().sort((a,b)=>(+b.disponivel||0)-(+a.disponivel||0));
+  return`<section class="box"><span class="eyebrow">Carteiras da equipe</span><p class="muted">Saques pedidos pela equipe. ${dono?'Faça o Pix no seu banco e depois toque em <b>Paguei o Pix</b>.':'Só o proprietário confirma os pagamentos.'}</p>
+    ${tilesV([['Saldo da equipe',brl(totDisp)],['Saques aguardando',brl(totSol)]])}
+    <div class="list">${abertos.length?abertos.map(item).join(''):`<div class="empty">Nenhum saque aguardando.</div>`}</div>
+    ${hist.length?`<h3 style="margin:14px 0 4px">Últimos saques resolvidos</h3><div class="list">${hist.map(item).join('')}</div>`:''}
+    <h3 style="margin:14px 0 4px">Saldo por pessoa</h3>
+    <div class="list">${pess.length?pess.map(x=>`<div class="card" style="cursor:default"><div class="card-top"><span class="muted">${esc(PAPEIS[x.papel]||x.papel)}${x.loja_id&&lojaDe(x.loja_id)?' · '+esc(lojaDe(x.loja_id).nome):''}</span></div><div class="card-mid"><strong>${esc(x.nome)}</strong><span class="total">${brl(x.disponivel)}</span></div><div class="card-sub">A liberar ${brl(x.a_liberar)} · em saque ${brl(x.em_saque)} · já sacado ${brl(x.sacado)}</div></div>`).join(''):`<div class="empty">Ninguém tem saldo ainda.</div>`}</div>
+    ${dono?`<h3 style="margin:14px 0 4px">Lançar ajuste</h3><p class="muted">Use para pagar uma comissão que não vem de pedido (por exemplo, supervisão) ou corrigir um valor. Valor negativo desconta.</p>
+    <div class="grid2"><div class="f"><label for="cx-aj-p">Pessoa</label><select id="cx-aj-p"><option value="">Escolha…</option>${S.perfis.filter(x=>x.status==='ativo').map(x=>`<option value="${esc(x.id)}" ${cxv('cx-aj-p')===x.id?'selected':''}>${esc(x.nome)} · ${esc(PAPEIS[x.papel]||x.papel)}</option>`).join('')}</select></div>
+    <div class="f"><label for="cx-aj-v">Valor (R$)</label><input id="cx-aj-v" inputmode="decimal" value="${esc(cxv('cx-aj-v'))}" placeholder="ex.: 250,00"></div></div>
+    <div class="f"><label for="cx-aj-m">Motivo</label><input id="cx-aj-m" value="${esc(cxv('cx-aj-m'))}" placeholder="ex.: comissão de supervisão de outubro"></div>
+    <div class="row"><button class="btn sm pri" data-act="cart-ajuste">Lançar ajuste</button></div>`:''}
+  </section>`
+}
+function checaVinculo(){clearTimeout(vTm);vTm=setTimeout(async()=>{const f=S.form;if(!f||papel()==='afiliado')return;const d=foneWa(f.cliente.fone);if(d.length<12){f.vinculo=null;pintaVinculo();return}
+  try{const{data}=await sb.rpc('afiliado_do_cliente',{p_fone:d});f.vinculo=data||null}catch(e){f.vinculo=null}pintaVinculo()},450)}
+function txtVinculo(f){const v=f&&f.vinculo;return v&&!f.afiliadoId?`Este cliente foi indicado por <b>${esc(v.nome)}</b> até ${dtBR(v.ate)}. A venda será comissionada a ele, no lugar da comissão do vendedor.`:''}
+function pintaVinculo(){const el=$('#vinc-dica');if(!el)return;const t=txtVinculo(S.form);el.innerHTML=t;el.hidden=!t}
+async function carregarRegras(){try{const{data}=await sb.from('regras').select('*');S.regras={};(data||[]).forEach(r=>{S.regras[r.papel]={limite:r.limite_valor==null?null:+r.limite_valor,limPix:r.limite_pix==null?null:+r.limite_pix,pmin:r.parcela_min==null?null:+r.parcela_min,max:+r.max_parcelas||6}})}catch(e){S.regras={}}}
+const parcDeKey=k=>/^cc\d$/.test(k||'')?+k.slice(2):1;
+function violacoes(total,key,pap){const r=(S.regras||{})[pap],v=[];if(!r)return v;const n=parcDeKey(key),lim=key==='pix'?r.limPix:r.limite;if(lim!=null&&total>lim)v.push({tipo:'valor',meio:key==='pix'?'Pix':'cartão',limite:lim,atual:total});if(n>r.max)v.push({tipo:'parcelas',limite:r.max,atual:n});if(n>1&&r.pmin!=null&&total/n<r.pmin)v.push({tipo:'parcela_min',limite:r.pmin,atual:total/n});return v}
+const pendente=p=>(p.aprovacao||{}).status==='pendente';
+const motivoTxt=m=>m.tipo==='valor'?`valor ${brl(m.atual)} acima do limite de ${brl(m.limite)}${m.meio?` no ${m.meio}`:''}`:m.tipo==='parcela_min'?`parcela de ${brl(m.atual)} abaixo do mínimo de ${brl(m.limite)}`:`${m.atual}x acima do máximo de ${m.limite}x`;
+const quemAprova=p=>(p.aprovacao||{}).exige==='gerente'?'o gerente da loja ou um supervisor':'um supervisor ou o proprietário';
+const podeAprovar=p=>pendente(p)&&(veTodas()||(p.aprovacao.exige==='gerente'&&ehGerente()&&p.loja_id===S.perfil.loja_id))&&(p.criado_por!==S.uid||ehDono());
+function blocoAprov(p){const a=p.aprovacao||{};
+  if(a.status==='pendente')return`<section class="box destaque"><span class="eyebrow">Aprovação necessária</span><h2>Este pedido aguarda aprovação</h2><p>Motivo: ${(a.motivos||[]).map(m=>esc(motivoTxt(m))).join('; ')}. Quem aprova: ${quemAprova(p)}. Até lá, o link de pagamento e a mensagem ao cliente ficam bloqueados.</p>${podeAprovar(p)?`<button class="btn pri full" data-act="aprovar">Aprovar pedido</button>`:`<p class="muted">Avise quem pode aprovar. Você também pode editar o pedido para ficar dentro do limite.</p>`}</section>`;
+  if(a.status==='aprovada')return`<p class="notice">Aprovado por ${esc(a.por_nome||'')} em ${esc(quando(a.em))}${(a.motivos||[]).length?` (${a.motivos.map(m=>esc(motivoTxt(m))).join('; ')})`:''}.</p>`;
+  return''}
+function blocoLinkAf(M){
+  const L=S.linksAf||[];
+  if(!L.length)return`<section class="box"><span class="eyebrow">Meu link de indicação</span><p class="muted">Seu código é <b>${esc(M.codigo||'')}</b>. O link de indicação fica disponível assim que uma loja tiver gerente cadastrado com WhatsApp.</p></section>`;
+  const i=Math.min(S.linkSel||0,L.length-1),g=L[i];
+  const txt=`Olá! Vim pela indicação de ${S.perfil.nome} (código ${M.codigo||''}). Quero ver os produtos.`;
+  const url=`https://wa.me/${g.fone}?text=${encodeURIComponent(txt)}`;
+  return`<section class="box"><span class="eyebrow">Meu link de indicação</span>
+    <p class="muted">Seu código é <b>${esc(M.codigo||'')}</b>. Compartilhe o link: o cliente chama o gerente da loja, que atende e fecha a venda. O cliente fica ligado a você por 90 dias, e você ganha ${pct(M.pct_indicacao||4)} sobre os produtos.</p>
+    <div class="f"><label for="af-loja">Loja e gerente que atende</label><select id="af-loja">${L.map((x,k)=>`<option value="${k}" ${k===i?'selected':''}>${esc(x.loja)} · ${esc(x.gerente)}</option>`).join('')}</select></div>
+    <div class="f"><label for="af-link">Link para divulgar</label><input id="af-link" readonly value="${esc(url)}"></div>
+    <div class="row"><button class="btn sm pri" data-act="copiar-link">Copiar link</button><a class="btn sm wa" href="${esc(url)}" target="_blank" rel="noopener">Testar no WhatsApp</a></div></section>`}
+function vAfiliado(){
+  const M=S.minhas||{prazo_dias:7,pedidos:[]},prazo=M.prazo_dias||7;
+  const L=M.pedidos.map(p=>({...p,sit:sitCom(p.status,p.entregue_em,p.pago_em,prazo)}));
+  const soma=(k)=>L.filter(x=>x.sit.k===k).reduce((s,x)=>s+(+x.comissao||0),0);
+  const vend=L.filter(x=>x.sit.k!=='cancelado');
+  const pctAtual=(L[0]&&L[0].pct)||S.perfil.comissao||4;
+  return`<section class="box"><span class="eyebrow">Minhas vendas</span><h1>Olá, ${esc(primeiro(S.perfil.nome||'afiliado'))}</h1>
+    <p class="muted">Você ganha <b>${pct(M.pct_indicacao||S.perfil.comissao||pctAtual)}</b> nas vendas por indicação e <b>${pct(M.pct_direta||S.perfil.comissao_direta||6)}</b> nas vendas que você mesmo fecha, sempre sobre o valor dos produtos, sem o frete. A comissão é liberada ${prazo} dias depois da entrega ao cliente.</p></section>
+  ${blocoCarteiraResumo()}
+  ${blocoLinkAf(M)}
+  ${tilesV([['Vendas realizadas',vend.length],['Produtos vendidos',brl(vend.reduce((s,x)=>s+(+x.subtotal||0),0))],['Comissão liberada',brl(soma('liberada')),1],['Comissão a liberar',brl(soma('prazo')+soma('andamento'))],['Comissão já paga',brl(soma('paga'))]])}
+  ${M.erro?`<p class="notice warn">Não foi possível carregar suas vendas agora. Toque em Atualizar para tentar de novo.</p>`:''}
+  <div class="list">${L.length?L.map(x=>{const abre=x.meu&&S.pedidos.some(q=>q.id===x.id);return`<${abre?'button':'div'} class="card" ${abre?`data-act="abrir" data-id="${esc(x.id)}"`:'style="cursor:default"'}><div class="card-top"><span class="mono muted">${esc(x.numero)}</span><span class="pill st-${x.sit.k==='paga'||x.sit.k==='liberada'?'entregue':x.sit.k==='cancelado'?'cancelado':'aguardando'}">${esc(x.sit.txt)}</span></div>
+    <div class="card-mid"><strong>${esc(x.cliente||'Cliente')}</strong><span class="total">${brl(x.comissao)}</span></div>
+    <div class="card-sub">Produtos ${brl(x.subtotal)} · ${pct(x.pct)} · ${esc(LABEL[x.status]||x.status)} · ${esc(dtBR(x.criado_em))}${x.origem?' · '+(x.origem==='direta'?'venda direta':'indicação'):''}${x.meu?' · pedido feito por você':''}</div></${abre?'button':'div'}>`}).join(''):`<div class="empty"><span>Ainda não há vendas. Toque em + Pedido para fazer uma venda: o pedido vai pronto para o gerente da loja embalar, emitir a nota e enviar.</span><button class="btn pri" data-act="novo">+ Novo pedido</button></div>`}</div>`}
+function vAfiliados(){
+  const prazo=(S.config||{}).prazo_dias||7;
+  const afs=S.perfis.filter(x=>x.papel==='afiliado').sort((a,b)=>a.nome.localeCompare(b.nome));
+  const lista=afs.map(a=>{const P=S.pedidos.filter(p=>p.afiliado_id===a.id).map(p=>({p,sit:sitCom(p.status,p.entregue_em,p.afiliado_pago_em,prazo)}));
+    const v=k=>P.filter(x=>x.sit.k===k).reduce((s,x)=>s+x.p.subtotal*x.p.comissao_afiliado/100,0);
+    return{a,P,n:P.filter(x=>x.sit.k!=='cancelado').length,prod:P.filter(x=>x.sit.k!=='cancelado').reduce((s,x)=>s+x.p.subtotal,0),and:v('andamento'),prz:v('prazo'),lib:v('liberada'),pag:v('paga'),nLib:P.filter(x=>x.sit.k==='liberada').length}});
+  return`<section class="box"><span class="eyebrow">Afiliados e influencers</span>
+    <p class="muted">O afiliado substitui o vendedor no pedido: fica só o gerente, e o afiliado ganha sobre os produtos (por indicação, ou até 6% quando ele mesmo fecha a venda). O cliente indicado fica ligado ao afiliado por 90 dias. A comissão é liberada para pagamento depois do prazo contado da entrega. Cadastre afiliados em Equipe, no botão Convidar, escolhendo o papel Afiliado.</p>
+    <div class="grid2"><div class="f"><label for="af-prazo">Prazo para liberar a comissão (dias após a entrega)</label><input id="af-prazo" inputmode="numeric" value="${prazo}"></div>
+    <div class="f"><label>Desconto para o cliente do afiliado</label><div class="muted" style="padding-top:10px">Em breve</div></div></div>
+    <div class="row"><button class="btn sm" data-act="prazo-salvar">Salvar prazo</button></div></section>
+  ${lista.length?lista.map(({a,n,prod,and,prz,lib,pag,nLib})=>`<section class="box"><div class="row between"><div><b>${esc(a.nome||'Sem nome')}</b><br><span class="muted" style="font-size:13px">${esc(contatoPerfil(a))} · ${esc(STATUS_P[a.status]||'')}${a.codigo_afiliado?' · código '+esc(a.codigo_afiliado):''}</span></div></div>
+    ${tilesV([['Vendas',n],['Produtos vendidos',brl(prod)],['Em andamento',brl(and)],['Aguardando o prazo',brl(prz)],['Liberada para pagar',brl(lib),1],['Já paga',brl(pag)]])}
+    <div class="grid3"><div class="f"><label for="afc-${a.id}">Por indicação (%)</label><input id="afc-${a.id}" inputmode="decimal" value="${esc(String(a.comissao==null?4:a.comissao).replace('.',','))}"></div>
+    <div class="f"><label for="afd-${a.id}">Venda direta (%, até 6)</label><input id="afd-${a.id}" inputmode="decimal" value="${esc(String(a.comissao_direta==null?6:a.comissao_direta).replace('.',','))}"></div>
+    <div class="row" style="align-items:flex-end"><button class="btn sm" data-act="af-com-salvar" data-id="${esc(a.id)}">Salvar comissões</button></div></div>
+    <p class="muted" style="font-size:13px">As novas comissões valem só para os próximos pedidos. Os já feitos mantêm a comissão da época.</p>
+    ${lib>0?(S.confPagAf===a.id?`<div class="confirma"><span>Confirmar o pagamento de ${brl(lib)} (${nLib} ${nLib===1?'pedido':'pedidos'}) a ${esc(primeiro(a.nome))}?</span><button class="btn sm pri" data-act="af-pagar-sim" data-id="${esc(a.id)}">Sim, já paguei</button><button class="btn sm ghost" data-act="af-pagar-nao">Não</button></div>`:`<button class="btn pri full" data-act="af-pagar" data-id="${esc(a.id)}">Marcar ${brl(lib)} como pago</button>`):''}
+  </section>`).join(''):`<div class="empty">Nenhum afiliado cadastrado ainda. Em Equipe, toque em Convidar e escolha o papel Afiliado.</div>`}`}
+function blocoRegras(){if(!veTodas())return'';const R=S.regras||{};
+  const num=v=>v==null?'':esc(String(v).replace('.',','));
+  const lin=(k,t)=>{const r=R[k]||{limite:null,limPix:null,pmin:null,max:6};return`<h3 style="margin:14px 0 4px">${t}</h3><div class="grid2"><div class="f"><label for="rg-${k}-lim">Limite no cartão (R$)</label><input id="rg-${k}-lim" inputmode="decimal" value="${num(r.limite)}" placeholder="Sem limite"></div><div class="f"><label for="rg-${k}-pix">Limite no Pix (R$)</label><input id="rg-${k}-pix" inputmode="decimal" value="${num(r.limPix)}" placeholder="Sem limite"></div></div><div class="grid2"><div class="f"><label for="rg-${k}-pmin">Parcela mínima (R$)</label><input id="rg-${k}-pmin" inputmode="decimal" value="${num(r.pmin)}" placeholder="Sem mínimo"></div><div class="f"><label for="rg-${k}-max">Máx. de parcelas</label><select id="rg-${k}-max">${[1,2,3,4,5,6].map(n=>`<option value="${n}" ${n===r.max?'selected':''}>${n}x</option>`).join('')}</select></div></div>`};
+  return`<section class="box"><span class="eyebrow">Regras de venda</span><p class="muted">Pedido do vendedor acima do limite de valor (cartão ou Pix), com parcela abaixo do mínimo ou com mais parcelas que o máximo fica aguardando aprovação. A aprovação é dada pelo gerente da loja, por um supervisor ou pelo proprietário. Gerentes, supervisores e proprietários não têm limite e fazem pedidos com autonomia.</p>${lin('vendedor','Vendedor')}<div class="row"><button class="btn sm pri" data-act="regras-salvar">Salvar regras</button></div></section>`}
 async function carregarPerfis(){const{data}=await sb.from('perfis').select('*').order('nome');S.perfis=(data||[]).map(normPerfil)}
 async function carregarLojas(){const{data}=await sb.from('lojas').select('*').order('nome');S.lojas=data||[]}
 let canal,tRe;
@@ -423,10 +585,13 @@ function render(){
   else if(!S.uid)app.innerHTML=vAuth();
   else if(!S.carregado)app.innerHTML=`<div class="empty">Carregando…</div>`;
   else if(!ativo())app.innerHTML=vPendente();
+  else if(papel()==='afiliado'&&!['novo','editar','pedido','carteira'].includes(S.view))app.innerHTML=vAfiliado();
+  else if(S.view==='carteira')app.innerHTML=vCarteira();
   else if(S.view==='novo'||S.view==='editar')app.innerHTML=vForm();
   else if(S.view==='pedido')app.innerHTML=vPedido();
   else if(S.view==='equipe'&&(veTodas()||ehGerente()))app.innerHTML=vEquipe();
   else if(S.view==='lojas'&&ehDono())app.innerHTML=vLojas();
+  else if(S.view==='afiliados'&&veTodas())app.innerHTML=vAfiliados();
   else if(S.view==='resultados')app.innerHTML=vResultados();
   else if(S.view==='clientes')app.innerHTML=vClientes();
   else if(S.view==='cliente')app.innerHTML=vCliente();
@@ -434,6 +599,7 @@ function render(){
   Object.entries(keep).forEach(([id,v])=>{const el=document.getElementById(id);if(el){el.value=v;el.dataset.dirty='1'}});
   if(foco){const el=document.getElementById(foco);if(el&&el.focus)el.focus({preventScroll:true})}
   renderBarra();
+  if((S.view==='novo'||S.view==='editar')&&S.form&&S.form.vinculo===undefined&&papel()!=='afiliado'){S.form.vinculo=null;checaVinculo()}
 }
 function renderNav(){
   const v=S.view,cur=k=>v===k?'aria-current="page"':'';
@@ -441,10 +607,11 @@ function renderNav(){
   document.body.classList.toggle('entrada',!S.uid||!!S.conv||S.recuperar);
   if(S.conv){$('#nav').innerHTML='';sub.textContent='Vendas pelo WhatsApp';return}
   if(!S.uid||!ativo()||S.recuperar){$('#nav').innerHTML=S.uid&&!S.recuperar?`<button data-act="sair">Sair</button>`:'';sub.textContent='Vendas pelo WhatsApp';return}
+  if(S.perfil.papel==='afiliado'){sub.textContent=`${S.perfil.nome||S.email} · Afiliado`;$('#nav').innerHTML=`<button data-act="ir" data-v="painel" ${S.view!=='carteira'?'aria-current="page"':''}>Vendas</button><button data-act="ir" data-v="carteira" ${S.view==='carteira'?'aria-current="page"':''}>Carteira</button><button class="atualiza" data-act="atualizar" title="Buscar a versão mais recente">↻ Atualizar</button><button data-act="sair">Sair</button><button class="novo" data-act="novo">+ Pedido</button>`;return}
   const l=lojaDe(S.perfil.loja_id);
   sub.textContent=`${S.perfil.nome||S.email} · ${PAPEIS[S.perfil.papel]}${l&&!veTodas()?` · ${l.nome}`:''}`;
   const pend=ehDono()&&S.perfis.some(p=>p.status==='pendente');
-  $('#nav').innerHTML=`<button data-act="ir" data-v="painel" ${cur('painel')}>Pedidos</button><button data-act="ir" data-v="clientes" ${cur('clientes')||cur('cliente')}>Clientes</button><button data-act="ir" data-v="resultados" ${cur('resultados')}>Resultados</button>${veTodas()||ehGerente()?`<button data-act="ir" data-v="equipe" ${cur('equipe')}>Equipe${pend?' •':''}</button>`:''}${ehDono()?`<button data-act="ir" data-v="lojas" ${cur('lojas')}>Lojas</button>`:''}<button data-act="ir" data-v="ajuda" ${cur('ajuda')}>Como funciona</button><button class="atualiza" data-act="atualizar" title="Buscar a versão mais recente">↻ Atualizar</button><button data-act="sair">Sair</button>${podeVender()?`<button class="novo" data-act="novo">+ Pedido</button>`:''}`;
+  $('#nav').innerHTML=`<button data-act="ir" data-v="painel" ${cur('painel')}>Pedidos</button><button data-act="ir" data-v="clientes" ${cur('clientes')||cur('cliente')}>Clientes</button><button data-act="ir" data-v="resultados" ${cur('resultados')}>Resultados</button><button data-act="ir" data-v="carteira" ${cur('carteira')}>Carteira</button>${veTodas()||ehGerente()?`<button data-act="ir" data-v="equipe" ${cur('equipe')}>Equipe${pend?' •':''}</button>`:''}${veTodas()?`<button data-act="ir" data-v="afiliados" ${cur('afiliados')}>Afiliados</button>`:''}${ehDono()?`<button data-act="ir" data-v="lojas" ${cur('lojas')}>Lojas</button>`:''}<button data-act="ir" data-v="ajuda" ${cur('ajuda')}>Como funciona</button><button class="atualiza" data-act="atualizar" title="Buscar a versão mais recente">↻ Atualizar</button><button data-act="sair">Sair</button>${podeVender()?`<button class="novo" data-act="novo">+ Pedido</button>`:''}`;
 }
 
 /* --- acesso --- */
@@ -494,7 +661,7 @@ function vPainel(){
   const hoje=new Date().toDateString();
   const pagosHoje=base.filter(p=>p.pago_em&&new Date(p.pago_em).toDateString()===hoje&&p.status!=='cancelado');
   const lista=filtrados();const lv=lojasVisiveis();
-  return`${lv.length>1?`<div class="chips" role="group" aria-label="Loja">
+  return`${blocoCarteiraResumo()}${lv.length>1?`<div class="chips" role="group" aria-label="Loja">
     <button class="chip" data-act="loja" data-id="todas" aria-pressed="${S.loja==='todas'}">Todas as lojas</button>
     ${lv.map(l=>`<button class="chip" data-act="loja" data-id="${esc(l.id)}" aria-pressed="${S.loja===l.id}">${esc(l.nome)}</button>`).join('')}
   </div>`:''}
@@ -512,25 +679,27 @@ function vPainel(){
   <div class="list">
     ${lista.length?lista.map(p=>{const l=lojaDe(p.loja_id);const n=p.itens.reduce((s,i)=>s+(i.qtd||0),0);return`
       <button class="card" data-act="abrir" data-id="${esc(p.id)}">
-        <div class="card-top"><span class="mono muted">${esc(p.numero)}</span><span class="pill st-${esc(p.status)}">${esc(LABEL[p.status]||p.status)}</span></div>
+        <div class="card-top"><span class="mono muted">${esc(p.numero)}</span><span><span class="pill st-${esc(p.status)}">${esc(LABEL[p.status]||p.status)}</span>${pendente(p)?' <span class="pill st-pendente">Aprovação</span>':''}</span></div>
         <div class="card-mid"><strong>${esc(p.cliente.nome||'Cliente')}</strong><span class="total">${brl(p.total)}</span></div>
-        <div class="card-sub">${esc(l?l.nome:'')} · ${esc(p.vendedor_nome||'venda da loja')} · ${n} ${n===1?'peça':'peças'} · ${esc(MODOS[p.modo]||'')} · ${esc(quando(p.atualizado_em||p.criado_em))}</div>
+        <div class="card-sub">${esc(l?l.nome:'')} · ${esc(quemVende(p))} · ${n} ${n===1?'peça':'peças'} · ${esc(MODOS[p.modo]||'')} · ${esc(quando(p.atualizado_em||p.criado_em))}${p.itens.some(i=>i.obs)?' · <b class="tem-obs">Com observação</b>':''}</div>
         ${progHtml(p)}
-      </button>`}).join(''):`<div class="empty"><span>${S.pedidos.length?'Nenhum pedido neste filtro.':'Nenhum pedido ainda. Monte o primeiro: produtos, frete e link de pagamento, e o Fechô gera a mensagem para o WhatsApp do cliente.'}</span>${podeVender()?'<button class="btn pri" data-act="novo">+ Novo pedido</button>':''}</div>`}
+      </button>`}).join(''):`<div class="empty"><span>${S.pedidos.length?'Nenhum pedido neste filtro.':'Nenhum pedido ainda. Monte o primeiro: produtos, frete, forma de pagamento e link, e o Fechô gera a mensagem para o WhatsApp do cliente.'}</span>${podeVender()?'<button class="btn pri" data-act="novo">+ Novo pedido</button>':''}</div>`}
   </div>`;
 }
 
 /* --- formulário de pedido --- */
 function novoForm(){
-  const lojaId=veTodas()?(S.loja!=='todas'?S.loja:(lojasVisiveis()[0]?.id||'')):S.perfil.loja_id;
-  return{id:null,lojaId,vendedorId:veTodas()?'':S.uid,clienteId:null,cliente:{nome:'',fone:'',cpf:'',email:'',cep:'',endereco:'',bairro:'',cidade:'Rio de Janeiro'},itens:[{ref:'',desc:'',tam:'',qtd:1,preco:''}],modo:'motoboy',frete:'',link:'',obs:''}
+  const lojaId=papel()==='afiliado'?'':veTodas()?(S.loja!=='todas'?S.loja:(lojasVisiveis()[0]?.id||'')):S.perfil.loja_id;
+  return{id:null,lojaId,vendedorId:veTodas()?'':S.uid,clienteId:null,cliente:{nome:'',fone:'',cpf:'',email:'',cep:'',endereco:'',bairro:'',cidade:'Rio de Janeiro'},itens:[{ref:'',desc:'',tam:'',qtd:1,preco:'',obs:''}],modo:'motoboy',frete:'',pag:'',afiliadoId:'',link:'',obs:''}
 }
 function totaisForm(f){const sub=f.itens.reduce((s,i)=>s+(toNum(i.preco)*(parseInt(i.qtd)||0)),0);const fr=f.modo==='retirada'?0:toNum(f.frete);return{sub,fr,tot:sub+fr}}
 function vendedoresDaLoja(lojaId){return S.perfis.filter(p=>p.status==='ativo'&&p.loja_id===lojaId&&(p.papel==='vendedor'||p.papel==='gerente'))}
 function vForm(){
   const f=S.form;const l=lojaDe(f.lojaId);
   let lojaVend;
-  if(veTodas()||ehGerente()){
+  if(papel()==='afiliado'){
+    lojaVend=`<div class="f"><label for="f-loja">Loja que vai separar, emitir a nota e enviar</label><select id="f-loja" data-ff="lojaId"><option value="">Escolha a loja</option>${lojasVisiveis().map(x=>`<option value="${esc(x.id)}" ${x.id===f.lojaId?'selected':''}>${esc(nomeLoja(x))}</option>`).join('')}</select></div><p class="notice">Você fecha esta venda direto: ganha ${pct(S.perfil.comissao_direta||6)} sobre os produtos. O pedido chega pronto para o gerente da loja, que embala, emite a nota fiscal e envia.</p>`;
+  }else if(veTodas()||ehGerente()){
     const vs=vendedoresDaLoja(f.lojaId);
     const selVend=`<div class="f"><label for="f-vend">Vendedor</label><select id="f-vend" data-ff="vendedorId"><option value="">Venda da loja (sem vendedor)</option>${vs.map(p=>`<option value="${esc(p.id)}" ${p.id===f.vendedorId?'selected':''}>${esc(p.nome)}${p.papel==='vendedor'&&p.comissao!=null?` · ${pct(p.comissao)}`:p.papel==='gerente'?' · gerente':''}</option>`).join('')}</select></div>`;
     lojaVend=veTodas()?`<div class="grid2">
@@ -541,7 +710,7 @@ function vForm(){
     lojaVend=`<p>${esc(nomeLoja(l))} · vendedor <b>${esc(me.nome)}</b>${me.papel==='vendedor'&&me.comissao!=null?` · sua comissão ${pct(me.comissao)} sobre os produtos`:''}</p>`;
   }
   return`<div class="row between"><h1>${f.id?'Editar pedido':'Novo pedido'}</h1><button class="btn ghost sm" data-act="voltar">Cancelar</button></div>
-  <section class="box"><span class="eyebrow">Loja e vendedor</span>${lojaVend}</section>
+  <section class="box"><span class="eyebrow">Loja e vendedor</span>${lojaVend}${blocoAfiliadoForm(f)}${papel()==='afiliado'?'':`<p class="notice" id="vinc-dica" ${txtVinculo(f)?'':'hidden'}>${txtVinculo(f)}</p>`}</section>
   <section class="box"><span class="eyebrow">Cliente</span>
     ${f.clienteId?`<div class="row between"><span class="pill st-ativo">Cliente cadastrado</span><button class="btn ghost sm" data-act="trocar-cli">Trocar cliente</button></div>`:`<div class="f"><label for="f-bcli">Buscar cliente cadastrado</label><input id="f-bcli" type="search" placeholder="Nome, WhatsApp ou CPF" autocomplete="off" value="${esc(S.cliBuscaForm)}"></div><div id="sug-cli" class="sug"></div><p class="muted" style="font-size:13px">Cliente novo? Preencha abaixo: o cadastro é criado junto com o pedido.</p>`}
     <div class="grid2">
@@ -563,7 +732,9 @@ function vForm(){
       <div class="grid2">
         <div class="f"><label for="i${i}-qtd">Quantidade</label><input id="i${i}-qtd" data-i="${i}" data-fi="qtd" type="number" min="1" inputmode="numeric" value="${esc(it.qtd)}"></div>
         <div class="f"><label for="i${i}-preco">Preço unitário (R$)</label><input id="i${i}-preco" data-i="${i}" data-fi="preco" inputmode="decimal" value="${esc(it.preco)}" placeholder="349,90"></div>
-      </div></div>`).join('')}
+      </div>
+      <div class="f"><label for="i${i}-obs">Observação deste produto (opcional)</label><input id="i${i}-obs" data-i="${i}" data-fi="obs" value="${esc(it.obs||'')}" placeholder="Ex.: personalizar com o nome JOÃO e o nº 10" maxlength="200" autocomplete="off">
+        <div class="row" style="margin-top:6px">${OBS_RAPIDAS.map(t=>`<button type="button" class="chip" data-act="obs-chip" data-i="${i}" data-t="${esc(t)}">+ ${esc(t)}</button>`).join('')}</div></div></div>`).join('')}
     <datalist id="dl-tam">${TAMS.map(t=>`<option value="${t}">`).join('')}</datalist>
   </section>
   <section class="box"><span class="eyebrow">Entrega e frete</span>
@@ -581,7 +752,9 @@ function vForm(){
     <p class="notice">Por enquanto a loja informa o frete cotado no app do motoboy ou no Melhor Envio. A cotação automática entra quando as chaves da Lalamove, Uber Direct e Melhor Envio forem cadastradas.</p>`}
   </section>
   <section class="box"><span class="eyebrow">Pagamento</span>
-    <div class="f"><label for="f-link">Link de pagamento (cartão ou Pix)</label><input id="f-link" data-ff="link" value="${esc(f.link)}" placeholder="Cole o link gerado na Stone. Pode colar depois."></div>
+    <div class="f"><label for="f-pag">Forma de pagamento do cliente</label><select id="f-pag" data-ff="pag">${pagOpts(f.pag,totaisForm(f).tot)}</select></div>
+    <p class="notice" id="pag-dica">${dicaPag(f)}</p>
+    <div class="f"><label for="f-link">Link de pagamento</label><input id="f-link" data-ff="link" value="${esc(f.link)}" placeholder="${papel()==='afiliado'?'Se você já tem o link, cole aqui. Se não, deixe em branco: o gerente da loja gera o link e salva no pedido.':'Gere o link na Stone com a forma escolhida e cole aqui. Pode colar depois.'}"></div>
     <div class="f"><label for="f-obs">Observações internas</label><textarea id="f-obs" data-ff="obs">${esc(f.obs)}</textarea></div>
   </section>
   ${S.erro?`<p class="erro" role="alert">${esc(S.erro)}</p>`:''}`;
@@ -593,16 +766,23 @@ function renderBarra(){
   const t=totaisForm(S.form);
   b.innerHTML=`<div class="barra-in"><div class="tot"><span class="muted" id="t-det">Produtos ${brl(t.sub)} · Frete ${brl(t.fr)}</span><b id="t-tot">${brl(t.tot)}</b></div><button class="btn pri" data-act="salvar-pedido">${S.form.id?'Salvar alterações':'Gerar pedido'}</button></div>`;
 }
-function atualizaTotais(){const t=totaisForm(S.form);const a=$('#t-det'),b=$('#t-tot');if(a)a.textContent=`Produtos ${brl(t.sub)} · Frete ${brl(t.fr)}`;if(b)b.textContent=brl(t.tot)}
+function avisoLimite(f){const pp=papel();if(pp!=='vendedor')return'';const v=violacoes(totaisForm(f).tot,f.pag,pp);return v.length?`<br><b>Precisa de aprovação</b> (${v.map(motivoTxt).join('; ')}), a ser dada pelo gerente da loja ou por um supervisor. Você gera o pedido, mas o link de pagamento só pode ser criado depois da aprovação.`:''}
+function blocoAfiliadoForm(f){
+  if(!(veTodas()||ehGerente()))return'';const L=S.afiliados||[];if(!L.length&&!f.afiliadoId)return'';
+  const a=L.find(x=>x.id===f.afiliadoId);
+  return`<div class="f"><label for="f-afil">Afiliado / influencer (opcional)</label><select id="f-afil" data-ff="afiliadoId"><option value="">Venda sem afiliado</option>${L.map(x=>`<option value="${esc(x.id)}" ${x.id===f.afiliadoId?'selected':''}>${esc(x.nome)} · ${pct(x.comissao)}${x.codigo?' ('+esc(x.codigo)+')':''}</option>`).join('')}</select></div><div class="f"><label for="f-acod">Ou digite o código do afiliado</label><input id="f-acod" autocomplete="off" autocapitalize="characters" placeholder="Ex.: ANA10" value=""></div>${f.afiliadoId?`<p class="notice" id="afil-dica">Venda por indicação: o afiliado substitui o vendedor. ${a?esc(a.nome)+' ganha '+pct(a.comissao)+' sobre os produtos, ':''}paga depois do prazo de liberação, e a comissão de vendedor não é paga neste pedido: fica só o gerente. O cliente fica ligado ao afiliado por 90 dias.</p>`:''}`}
+function dicaPag(f){return avisoLimite(f)&&f.pag?`Forma escolhida: <b>${esc(rotuloPag(f.pag,totaisForm(f).tot))}</b>.${avisoLimite(f)}`:f.pag?`Gere o link na Stone com: <b>${esc(rotuloPag(f.pag,totaisForm(f).tot))}</b>. A mensagem ao cliente já vai com essa forma de pagamento.`:'Escolha como o cliente vai pagar antes de gerar o link, para o link e a mensagem saírem certos.'}
+function atualizaTotais(){const t=totaisForm(S.form);const a=$('#t-det'),b=$('#t-tot');if(a)a.textContent=`Produtos ${brl(t.sub)} · Frete ${brl(t.fr)}`;if(b)b.textContent=brl(t.tot);const sp=$('#f-pag');if(sp)[...sp.options].forEach(o=>{if(o.value)o.textContent=rotuloPag(o.value,t.tot)});const d=$('#pag-dica');if(d)d.innerHTML=dicaPag(S.form)}
 
 async function salvarPedido(){
   const f=S.form;S.erro='';
-  const itens=f.itens.map(i=>({ref:i.ref.trim(),desc:i.desc.trim(),tam:i.tam.trim(),qtd:Math.max(1,parseInt(i.qtd)||1),preco:toNum(i.preco)})).filter(i=>i.desc||i.ref||i.preco);
+  const itens=f.itens.map(i=>({ref:i.ref.trim(),desc:i.desc.trim(),tam:i.tam.trim(),qtd:Math.max(1,parseInt(i.qtd)||1),preco:toNum(i.preco),obs:String(i.obs||'').trim().slice(0,200)})).filter(i=>i.desc||i.ref||i.preco);
   const faltas=[];
   if(!f.lojaId)faltas.push('a loja');
   if(!f.cliente.nome.trim())faltas.push('o nome do cliente');
   if(foneWa(f.cliente.fone).length<12)faltas.push('o WhatsApp do cliente com DDD');
   if(!itens.length||itens.some(i=>!i.desc||!(i.preco>0)))faltas.push('descrição e preço de cada produto');
+  if(!f.pag)faltas.push('a forma de pagamento (Pix, cartão à vista ou parcelado)');
   if(f.modo!=='retirada'&&!f.cliente.endereco.trim())faltas.push('o endereço de entrega');
   if(faltas.length){S.erro='Falta preencher '+faltas.join(', ')+'.';render();return}
   const cpf=String(f.cliente.cpf||'').replace(/\D/g,'');if(cpf&&cpf.length!==11){S.erro='O CPF tem 11 dígitos.';render();return}
@@ -611,7 +791,7 @@ async function salvarPedido(){
     if(clienteId){const r=await sb.from('clientes').update(cd).eq('id',clienteId).select().single();if(r.data){const i=S.clientes.findIndex(x=>x.id===clienteId);if(i>=0)S.clientes[i]=r.data}}
     else{const r=await sb.from('clientes').insert({...cd,loja_id:f.lojaId,vendedor_id:f.vendedorId||null}).select().single();if(r.data){clienteId=r.data.id;S.clientes.push(r.data);S.clientes.sort((a,b)=>a.nome.localeCompare(b.nome))}}
   }catch(e){}
-  const dados={loja_id:f.lojaId,vendedor_id:f.vendedorId||null,cliente_id:clienteId||null,cliente:{...f.cliente,nome:f.cliente.nome.trim()},itens,modo:f.modo,frete:f.modo==='retirada'?0:toNum(f.frete),link_pagamento:f.link.trim(),obs:f.obs.trim()};
+  const dados={loja_id:f.lojaId,vendedor_id:f.vendedorId||null,cliente_id:clienteId||null,cliente:{...f.cliente,nome:f.cliente.nome.trim()},itens,modo:f.modo,frete:f.modo==='retirada'?0:toNum(f.frete),link_pagamento:(papel()==='vendedor'&&violacoes(totaisForm(f).tot,f.pag,papel()).length)?'':f.link.trim(),pagamento:{...pagDeKey(f.pag),gateway:'manual',status:'aguardando'},afiliado_id:f.afiliadoId||null,obs:f.obs.trim()};
   const r=f.id?await gravar(()=>sb.from('pedidos').update(dados).eq('id',f.id).select().single(),'Pedido atualizado')
               :await gravar(()=>sb.from('pedidos').insert({...dados,historico:[hist('aguardando')]}).select().single(),'Pedido gerado');
   if(r){const p=normPed(r);const i=S.pedidos.findIndex(x=>x.id===p.id);if(i>=0)S.pedidos[i]=p;else S.pedidos.unshift(p);S.atual=p.id;S.view='pedido';S.form=null;render();window.scrollTo(0,0)}
@@ -623,7 +803,7 @@ function vPedido(){
   if(!p)return`<button class="btn ghost sm" data-act="voltar">← Pedidos</button><div class="empty">Pedido não encontrado.</div>`;
   const l=lojaDe(p.loja_id),c=p.cliente,nf=p.nf,e=p.entrega;
   const msg=msgAtual(p);const wa=`https://wa.me/${foneWa(c.fone)}?text=${encodeURIComponent(msg)}`;
-  const podeEditar=p.status==='aguardando'&&(veTodas()||p.vendedor_id===S.uid||(ehGerente()&&p.loja_id===S.perfil.loja_id));
+  const podeEditar=p.status==='aguardando'&&(veTodas()||p.vendedor_id===S.uid||(papel()==='afiliado'&&p.afiliado_id===S.uid&&p.criado_por===S.uid)||(ehGerente()&&p.loja_id===S.perfil.loja_id));
   return`<div class="row between"><button class="btn ghost sm" data-act="voltar">← Pedidos</button>${podeEditar?`<button class="btn sm" data-act="editar">Editar pedido</button>`:''}</div>
   <section class="box">
     <div class="row between"><span class="mono muted">${esc(p.numero)}</span><span class="pill st-${esc(p.status)}">${esc(LABEL[p.status])}</span></div>
@@ -632,36 +812,50 @@ function vPedido(){
     <dl class="dl">
       <dt>WhatsApp</dt><dd>${esc(foneFmt(c.fone))}${p.cliente_id&&S.clientes.some(x=>x.id===p.cliente_id)?` · <button class="link" data-act="abrir-cli" data-id="${esc(p.cliente_id)}">ver cadastro</button>`:''}</dd>
       ${c.cpf?`<dt>CPF</dt><dd>${esc(cpfFmt(c.cpf))}</dd>`:''}
-      <dt>Loja</dt><dd>${esc(nomeLoja(l))} · ${esc(p.vendedor_nome||'venda da loja')}</dd>
+      <dt>Loja</dt><dd>${esc(nomeLoja(l))} · ${esc(quemVende(p))}</dd>
       <dt>Entrega</dt><dd>${esc(MODOS[p.modo]||'')}${p.modo!=='retirada'&&enderecoTxt(c)?`<br>${esc(enderecoTxt(c))}`:''}</dd>
-      ${p.pagamento.forma?`<dt>Pagamento</dt><dd>${esc(p.pagamento.forma)} · ${esc(quando(p.pago_em))}</dd>`:''}
+      ${p.pagamento.forma?`<dt>Pagamento</dt><dd>${esc(txtPagamento(p))} · ${esc(quando(p.pago_em))}</dd>`:''}
       ${nf.numero?`<dt>Nota fiscal</dt><dd>nº ${esc(nf.numero)}${nf.link?` · <a href="${esc(nf.link)}" target="_blank" rel="noopener">abrir</a>`:''}</dd>`:''}
       ${e.app?`<dt>Transporte</dt><dd>${esc(e.app)}${e.entregador?` · ${esc(e.entregador)}`:''}${e.link?` · <a href="${esc(e.link)}" target="_blank" rel="noopener">rastrear</a>`:e.codigo?` · <span class="mono">${esc(e.codigo)}</span>`:''}</dd>`:''}
-      ${veComissao(p)?`<dt>Comissões</dt><dd>${p.vendedor_id?`Vendedor ${pct(p.comissao_vend)} = ${brl(p.subtotal*p.comissao_vend/100)}`:'Sem vendedor'}${p.gerentes.filter(g=>veTodas()||g.id===S.uid).map(g=>` · Gerente${veTodas()?' '+esc(g.nome||''):''} ${pct(g.pct)} = ${brl(p.subtotal*g.pct/100)}`).join('')}<br><span class="muted">Sobre ${brl(p.subtotal)} em produtos, sem frete.</span></dd>`:''}
+      ${p.afiliado_id?`<dt>Afiliado</dt><dd>${esc(p.afiliado_nome||'')}${p.afiliado_origem?' · '+(p.afiliado_origem==='direta'?'venda direta':'indicação'):''}${veTodas()||p.afiliado_id===S.uid?` · ${pct(p.comissao_afiliado)} = ${brl(p.subtotal*p.comissao_afiliado/100)} · ${esc(sitCom(p.status,p.entregue_em,p.afiliado_pago_em,(S.config||{}).prazo_dias||7).txt)}`:''}</dd>`:''}
+      ${veComissao(p)&&papel()!=='afiliado'?`<dt>Comissões</dt><dd>${p.afiliado_id?'Vendedor: substituído pelo afiliado':p.vendedor_id?`Vendedor ${pct(p.comissao_vend)} = ${brl(p.subtotal*p.comissao_vend/100)}`:'Sem vendedor'}${p.gerentes.filter(g=>veTodas()||g.id===S.uid).map(g=>` · Gerente${veTodas()?' '+esc(g.nome||''):''} ${pct(g.pct)} = ${brl(p.subtotal*g.pct/100)}`).join('')}${(p.supervisores||[]).filter(g=>g.pct>0&&(ehDono()||g.id===S.uid)).map(g=>` · Supervisão${ehDono()?' '+esc(g.nome||''):''} ${pct(g.pct)} = ${brl(p.subtotal*g.pct/100)}`).join('')}<br><span class="muted">Sobre ${brl(p.subtotal)} em produtos, sem frete.</span></dd>`:''}
       ${p.obs?`<dt>Obs.</dt><dd>${esc(p.obs)}</dd>`:''}
     </dl>
   </section>
-  ${proximoPasso(p)}
-  <section class="box"><div class="row between"><span class="eyebrow">Mensagem para o cliente</span><span class="muted" style="font-size:13px">${esc(LABEL[p.status])}</span></div>
+  ${blocoAprov(p)}${pendente(p)?'':avisoObs(p)+proximoPasso(p)}
+  ${pendente(p)?'':`<section class="box"><div class="row between"><span class="eyebrow">Mensagem para o cliente</span><span class="muted" style="font-size:13px">${esc(LABEL[p.status])}</span></div>
     <textarea class="msg" id="msg" aria-label="Mensagem para o cliente" readonly>${esc(msg)}</textarea>
     <div class="row"><a class="btn wa" href="${esc(wa)}" target="_blank" rel="noopener">Abrir no WhatsApp</a><button class="btn" data-act="copiar">Copiar mensagem</button></div>
-  </section>
+  </section>`}
   <section class="box"><span class="eyebrow">Produtos</span>
-    <table class="itens"><tbody>${p.itens.map(i=>`<tr><td><b>${i.qtd}x ${esc(i.desc)}</b><br><span class="muted">${i.ref?`Ref. <span class="mono">${esc(i.ref)}</span> · `:''}${i.tam?`Tam. ${esc(i.tam)} · `:''}${brl(i.preco)} un.</span></td><td>${brl(i.preco*i.qtd)}</td></tr>`).join('')}</tbody></table>
+    <table class="itens"><tbody>${p.itens.map(i=>`<tr><td><b>${i.qtd}x ${esc(i.desc)}</b><br><span class="muted">${i.ref?`Ref. <span class="mono">${esc(i.ref)}</span> · `:''}${i.tam?`Tam. ${esc(i.tam)} · `:''}${brl(i.preco)} un.</span>${i.obs?`<div class="obs-item"><b>Observação:</b> ${esc(i.obs)}</div>`:''}</td><td>${brl(i.preco*i.qtd)}</td></tr>`).join('')}</tbody></table>
     <div class="totais"><span class="muted">Produtos</span><span>${brl(p.subtotal)}</span><span class="muted">Frete</span><span>${brl(p.frete)}</span><span class="g">Total</span><span class="g">${brl(p.total)}</span></div>
   </section>
   <section class="box"><span class="eyebrow">Histórico</span>
     <ul class="hist">${p.historico.map(h=>`<li><div><b>${esc(LABEL[h.s]||h.s)}</b><br><small>${esc(quando(h.em))}${h.nome?` · ${esc(h.nome)}`:''}</small></div></li>`).join('')}</ul>
   </section>
-  ${p.status!=='entregue'&&p.status!=='cancelado'?(S.confirmaCancel?`<div class="confirma"><span>Cancelar o pedido ${esc(p.numero)}?</span><button class="btn sm danger" data-act="cancelar-sim">Sim, cancelar</button><button class="btn sm" data-act="cancelar-nao">Não</button></div>`:`<button class="btn ghost danger" data-act="cancelar">Cancelar pedido</button>`):''}`;
+  ${p.status!=='entregue'&&p.status!=='cancelado'&&papel()!=='afiliado'?(S.confirmaCancel?`<div class="confirma"><span>Cancelar o pedido ${esc(p.numero)}?</span><button class="btn sm danger" data-act="cancelar-sim">Sim, cancelar</button><button class="btn sm" data-act="cancelar-nao">Não</button></div>`:`<button class="btn ghost danger" data-act="cancelar">Cancelar pedido</button>`):''}`;
+}
+const ehCredito=p=>(p.pagamento||{}).forma==='Cartão de crédito';
+const parcelasDe=p=>ehCredito(p)?(+p.pagamento.parcelas||0):0;
+function txtPagamento(p){const f=(p.pagamento||{}).forma||'Não informada',n=parcelasDe(p);return ehCredito(p)?(n>1?`${f} em ${n}x de ${brl(p.total/n)}`:n===1?`${f} à vista`:f):f}
+const pagDeKey=k=>k==='pix'?{forma:'Pix',parcelas:null}:k==='deb'?{forma:'Cartão de débito',parcelas:null}:{forma:'Cartão de crédito',parcelas:Math.max(1,parseInt(String(k).slice(2))||1)};
+const keyDePag=g=>{if(!g||!g.forma)return'';if(g.forma==='Pix')return'pix';if(g.forma==='Cartão de débito')return'deb';if(g.forma==='Cartão de crédito')return'cc'+Math.min(6,Math.max(1,+g.parcelas||1));return''};
+const rotuloPag=(k,tot)=>{if(k==='pix')return'Pix';if(k==='deb')return'Cartão de débito';if(k==='cc1')return'Cartão à vista (rotativo)';const n=+k.slice(2);return`Cartão parcelado em ${n}x de ${brl((tot||0)/n)}`};
+function pagOpts(sel,tot,deb){const ks=['pix','cc1','cc2','cc3','cc4','cc5','cc6'];if(deb||sel==='deb')ks.push('deb');return`<option value="" ${sel?'':'selected'}>Escolha…</option>`+ks.map(k=>`<option value="${k}" ${k===sel?'selected':''}>${esc(rotuloPag(k,tot))}</option>`).join('')}
+function avisoObs(p){
+  const l=(p.itens||[]).filter(i=>i.obs);
+  if(!l.length||!['aguardando','pago','embalado'].includes(p.status))return'';
+  return`<div class="notice warn"><b>Atenção ao separar e embalar:</b><ul style="margin:6px 0 0;padding-left:18px">${l.map(i=>`<li>${esc(i.desc||'Produto')}${i.tam?` (${esc(i.tam)})`:''}: ${esc(i.obs)}</li>`).join('')}</ul></div>`;
 }
 function proximoPasso(p){
+  if(papel()==='afiliado')return p.status==='aguardando'?`<section class="box destaque"><span class="eyebrow">Próximo passo</span><h2>Enviar ao cliente</h2><p>${p.link_pagamento?'Envie a mensagem abaixo ao cliente pelo WhatsApp. Assim que o pagamento cair, o gerente da loja separa o pedido.':'Aguarde o gerente da loja gerar o link de pagamento: ele aparece na mensagem abaixo. Depois é só enviar ao cliente.'}</p></section>`:'';
   const nf=p.nf,e=p.entrega;
   switch(p.status){
     case'aguardando':return`<section class="box destaque"><span class="eyebrow">Próximo passo</span><h2>Enviar a cobrança e confirmar o pagamento</h2>
       <div class="f"><label for="p-link">Link de pagamento</label><input id="p-link" value="${esc(p.link_pagamento||'')}" placeholder="Cole o link da Stone"></div>
       <div class="row"><button class="btn sm" data-act="salvar-link">Salvar link</button></div>
-      <div class="f"><label for="p-forma">Pago com</label><select id="p-forma"><option>Pix</option><option>Cartão de crédito</option><option>Cartão de débito</option></select></div>
+      <div class="f"><label for="p-forma">Pago com</label><select id="p-forma">${pagOpts(keyDePag(p.pagamento),p.total,true)}</select></div>
       <button class="btn pri full" data-act="confirmar-pag">Confirmar pagamento recebido</button>
       <p class="notice">Confira o recebimento no app da Stone antes de confirmar. Com a chave do Pagar.me, o link será gerado e o pagamento confirmado automaticamente.</p></section>`;
     case'pago':return`<section class="box destaque"><span class="eyebrow">Próximo passo</span><h2>Separar e embalar</h2><button class="btn pri full" data-act="avancar" data-s="embalado">Pedido embalado</button></section>`;
@@ -688,8 +882,8 @@ async function avancar(p,novo,extra={}){
 
 /* --- convites por WhatsApp --- */
 const emailDoFone=d=>`${d}@grupowqs.com`;
-const papeisConvite=()=>ehDono()?['proprietario','supervisor','gerente','vendedor']:papel()==='supervisor'?['gerente','vendedor']:['vendedor'];
-const podeGerir=(pa,lj)=>ehDono()||(papel()==='supervisor'&&(pa==='gerente'||pa==='vendedor'))||(ehGerente()&&pa==='vendedor'&&lj===S.perfil.loja_id);
+const papeisConvite=()=>ehDono()?['proprietario','supervisor','gerente','afiliado','vendedor']:papel()==='supervisor'?['gerente','afiliado','vendedor']:['vendedor'];
+const podeGerir=(pa,lj)=>ehDono()||(papel()==='supervisor'&&(pa==='gerente'||pa==='vendedor'||pa==='afiliado'))||(ehGerente()&&pa==='vendedor'&&lj===S.perfil.loja_id);
 const linkConvite=c=>`${location.origin}/?c=${c.token}`;
 const waLink=(fone,t)=>`https://wa.me/${fone}?text=${encodeURIComponent(t)}`;
 const msgConvite=c=>`Olá, ${primeiro(c.nome)}! Você foi convidado para o Fechô, o sistema de vendas pelo WhatsApp das lojas${c.loja_id?` (${nomeLoja(lojaDe(c.loja_id))})`:''}, como ${PAPEIS[c.papel].toLowerCase()}.\n\nAbra o link, escolha sua senha e complete seu cadastro:\n${linkConvite(c)}\n\nPara entrar depois, use seu WhatsApp e a senha.`;
@@ -698,7 +892,7 @@ const contatoPerfil=p=>{const em=p.email_contato||(p.email&&!/^\d{12,13}@grupowq
 async function carregarConvites(){const{data}=await sb.from('convites').select('*').eq('status','pendente').eq('tipo','novo').order('criado_em',{ascending:false});S.convites=data||[]}
 const novoCv=()=>{const ps=papeisConvite();return{id:null,nome:'',fone:'',papel:ps[ps.length-1],loja_id:ehGerente()?S.perfil.loja_id:'',comissao:''}};
 function formConvite(){
-  const d=S.cv,ps=papeisConvite(),precisa=d.papel==='gerente'||d.papel==='vendedor';
+  const d=S.cv,ps=papeisConvite(),precisa=d.papel==='gerente'||d.papel==='vendedor',temCom=!!COM_FAIXA[d.papel];
   const lojas=ehGerente()?S.lojas.filter(l=>l.id===S.perfil.loja_id):S.lojas.filter(l=>l.ativa!==false);
   return`<section class="box"><span class="eyebrow">${d.id?'Editar convite':'Novo convite'}</span>
     <p class="muted" style="font-size:13.5px">Os dados ficam salvos. A pessoa recebe o link no WhatsApp, escolhe a senha e completa o próprio cadastro.</p>
@@ -709,7 +903,7 @@ function formConvite(){
     <div class="grid3">
       <div class="f"><label for="cv-papel">Papel</label><select id="cv-papel" data-cv="papel">${ps.map(k=>`<option value="${k}" ${d.papel===k?'selected':''}>${PAPEIS[k]}</option>`).join('')}</select></div>
       <div class="f"><label for="cv-loja">Loja</label><select id="cv-loja" data-cv="loja_id" ${precisa?'':'disabled'}><option value="">${precisa?'Escolha a loja':'Todas'}</option>${lojas.map(l=>`<option value="${esc(l.id)}" ${d.loja_id===l.id?'selected':''}>${esc(l.nome)}</option>`).join('')}</select></div>
-      <div class="f"><label for="cv-com">Comissão (%)</label><input id="cv-com" data-cv="comissao" inputmode="decimal" value="${esc(precisa?d.comissao:'')}" placeholder="${d.papel==='gerente'?'1 a 2':d.papel==='vendedor'?'2 a 5':'—'}" ${precisa?'':'disabled'}></div>
+      <div class="f"><label for="cv-com">Comissão (%)</label><input id="cv-com" data-cv="comissao" inputmode="decimal" value="${esc(temCom?d.comissao:'')}" placeholder="${d.papel==='gerente'?'1 a 2':d.papel==='vendedor'?'2 a 5':d.papel==='afiliado'?'1 a 10':'—'}" ${temCom?'':'disabled'}></div>
     </div>
     ${S.erro?`<p class="erro" role="alert">${esc(S.erro)}</p>`:''}
     <div class="row"><button class="btn pri" data-act="cv-salvar">Salvar convite</button><button class="btn ghost" data-act="cv-fechar">Cancelar</button></div>
@@ -738,11 +932,9 @@ async function salvarConvite(){
   if(!d.nome.trim())S.erro='Informe o nome.';
   else if(f.length<12||f.length>13)S.erro='Informe o WhatsApp com DDD.';
   else if(precisa&&!d.loja_id)S.erro='Escolha a loja.';
-  else if(precisa){
+  else if(COM_FAIXA[d.papel]){
     if(String(d.comissao).trim()==='')S.erro='Informe a comissão.';
-    else{com=toNum(d.comissao);
-      if(d.papel==='vendedor'&&(com<2||com>5))S.erro='Comissão do vendedor: de 2% a 5%.';
-      if(d.papel==='gerente'&&(com<1||com>2))S.erro='Comissão do gerente: de 1% a 2%.'}
+    else{com=toNum(d.comissao);S.erro=comErro(d.papel,com)}
   }
   if(S.erro){render();return}
   const args={p_nome:d.nome.trim(),p_fone:f,p_papel:d.papel,p_loja:precisa?d.loja_id:null,p_comissao:com};
@@ -781,9 +973,9 @@ function vConvite(){
 
 /* --- equipe --- */
 function vEquipeLeve(){
-  const ordem={pendente:0,ativo:1,inativo:2},ordP={proprietario:0,supervisor:1,gerente:2,vendedor:3};
+  const ordem={pendente:0,ativo:1,inativo:2},ordP={proprietario:0,supervisor:1,gerente:2,afiliado:3,vendedor:4};
   const lista=[...S.perfis].filter(p=>p.id!==S.uid).sort((a,b)=>(ordP[a.papel]-ordP[b.papel])||(ordem[a.status]-ordem[b.status])||a.nome.localeCompare(b.nome));
-  return`${topoEquipe()}
+  return`${topoEquipe()}${blocoRegras()}
   <p class="muted">${ehGerente()?'Os vendedores da sua loja.':'Toda a equipe.'} Convide pelo WhatsApp: a pessoa recebe o link, escolhe a senha e completa o cadastro. Quem esqueceu a senha recebe um novo link por aqui.</p>
   ${lista.length?`<div class="list">${lista.map(p=>{const l=lojaDe(p.loja_id);
     return`<div class="card" style="cursor:default"><div class="card-top"><b>${esc(p.nome||'Sem nome')}</b><span class="pill st-${esc(p.status)}">${esc(STATUS_P[p.status])}</span></div>
@@ -792,11 +984,11 @@ function vEquipeLeve(){
 }
 function vEquipe(){return ehDono()?vEquipeDono():vEquipeLeve()}
 function vEquipeDono(){
-  const ordem={pendente:0,ativo:1,inativo:2},ordP={proprietario:0,supervisor:1,gerente:2,vendedor:3};
+  const ordem={pendente:0,ativo:1,inativo:2},ordP={proprietario:0,supervisor:1,gerente:2,afiliado:3,vendedor:4};
   const lista=[...S.perfis].sort((a,b)=>(ordem[a.status]-ordem[b.status])||(ordP[a.papel]-ordP[b.papel])||a.nome.localeCompare(b.nome));
-  return`${topoEquipe()}
+  return`${topoEquipe()}${blocoRegras()}
   <p class="muted">Quem cria conta no Fechô sem convite aparece aqui para liberação. Proprietários e supervisores veem todas as lojas. O gerente vê a própria loja e todos os vendedores dela. O vendedor vê só os próprios pedidos e resultados. Comissão sobre a venda de produtos, sem frete: vendedor de 2% a 5%, gerente de 1% a 2% sobre a loja.</p>
-  ${lista.length?lista.map(p=>{const d=S.eq[p.id]||(S.eq[p.id]={nome:p.nome,papel:p.papel,status:p.status,loja_id:p.loja_id||'',comissao:p.comissao==null?'':String(p.comissao).replace('.',',')});const eu=p.id===S.uid;const precisaLoja=d.papel==='gerente'||d.papel==='vendedor';const temCom=precisaLoja;
+  ${lista.length?lista.map(p=>{const d=S.eq[p.id]||(S.eq[p.id]={nome:p.nome,papel:p.papel,status:p.status,loja_id:p.loja_id||'',comissao:p.comissao==null?(p.papel==='supervisor'?'1':''):String(p.comissao).replace('.',',')});const eu=p.id===S.uid;const precisaLoja=d.papel==='gerente'||d.papel==='vendedor';const temCom=!!COM_FAIXA[d.papel];
     return`<section class="box">
       <div class="row between"><div><b>${esc(p.nome||'Sem nome')}</b>${eu?' <span class="muted">(você)</span>':''}<br><span class="muted" style="font-size:13px">${esc(contatoPerfil(p))}</span></div><span class="pill st-${esc(p.status)}">${esc(STATUS_P[p.status])}</span></div>
       <div class="grid2">
@@ -805,7 +997,7 @@ function vEquipeDono(){
       </div>
       <div class="grid3">
         <div class="f"><label for="e-${p.id}-loja">Loja</label><select id="e-${p.id}-loja" data-pe="${p.id}" data-pf="loja_id"><option value="">${precisaLoja?'Escolha a loja':'Todas (sem loja fixa)'}</option>${S.lojas.map(l=>`<option value="${esc(l.id)}" ${d.loja_id===l.id?'selected':''}>${esc(l.nome)}</option>`).join('')}</select></div>
-        <div class="f"><label for="e-${p.id}-com">Comissão (%)</label><input id="e-${p.id}-com" data-pe="${p.id}" data-pf="comissao" inputmode="decimal" value="${esc(temCom?d.comissao:'')}" placeholder="${d.papel==='gerente'?'1 a 2':d.papel==='vendedor'?'2 a 5':'—'}" ${temCom?'':'disabled'}></div>
+        <div class="f"><label for="e-${p.id}-com">Comissão (%)</label><input id="e-${p.id}-com" data-pe="${p.id}" data-pf="comissao" inputmode="decimal" value="${esc(temCom?d.comissao:'')}" placeholder="${d.papel==='gerente'?'1 a 2':d.papel==='vendedor'?'2 a 5':d.papel==='afiliado'?'1 a 10':'—'}" ${temCom?'':'disabled'}></div>
         <div class="f"><label for="e-${p.id}-st">Acesso</label><select id="e-${p.id}-st" data-pe="${p.id}" data-pf="status" ${eu?'disabled':''}>${Object.entries(STATUS_P).map(([k,v])=>`<option value="${k}" ${d.status===k?'selected':''}>${v}</option>`).join('')}</select></div>
       </div>
       <div class="row"><button class="btn sm ${p.status==='pendente'?'pri':''}" data-act="salvar-perfil" data-id="${p.id}">${p.status==='pendente'?'Salvar e liberar':'Salvar'}</button>${p.fone&&!eu?`<button class="btn sm ghost" data-act="nova-senha" data-id="${p.id}">Link de nova senha</button>`:''}</div>${blocoReset(p)}
@@ -814,12 +1006,11 @@ function vEquipeDono(){
 async function salvarPerfil(id){
   const d=S.eq[id],p=S.perfis.find(x=>x.id===id);if(!d||!p)return;
   if(p.status==='pendente'&&d.status==='pendente')d.status='ativo';
-  const temCom=d.papel==='gerente'||d.papel==='vendedor';
-  if(temCom&&!d.loja_id){toast('Escolha a loja do '+PAPEIS[d.papel].toLowerCase()+'.');return}
+  const temCom=!!COM_FAIXA[d.papel],precisaLoja=d.papel==='gerente'||d.papel==='vendedor';
+  if(precisaLoja&&!d.loja_id){toast('Escolha a loja do '+PAPEIS[d.papel].toLowerCase()+'.');return}
   let com=null;
   if(temCom){if(String(d.comissao).trim()===''){toast('Informe a comissão.');return}com=toNum(d.comissao);
-    if(d.papel==='vendedor'&&(com<2||com>5)){toast('Comissão do vendedor: de 2% a 5%.');return}
-    if(d.papel==='gerente'&&(com<1||com>2)){toast('Comissão do gerente: de 1% a 2%.');return}}
+    const er=comErro(d.papel,com);if(er){toast(er);return}}
   const upd={nome:d.nome.trim(),comissao:com,loja_id:d.loja_id||null};
   if(id!==S.uid){upd.papel=d.papel;upd.status=d.status}
   const r=await gravar(()=>sb.from('perfis').update(upd).eq('id',id).select().single(),`${upd.nome||'Cadastro'} salvo`);
@@ -884,7 +1075,7 @@ const escopoRes=a=>{
 const soma=(a,f)=>a.reduce((s,x)=>s+f(x),0);
 const pecas=a=>soma(a,p=>soma(p.itens,i=>+i.qtd||0));
 const varPct=(a,b)=>b>0?(a-b)/b*100:null;
-const badgeVar=v=>v==null?'':`<span class="var ${v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${Math.abs(v).toFixed(1).replace('.',',')}%</span>`;
+const badgeVar=v=>v==null?'':typeof v==='string'?`<span class="var neutra">${esc(v)}</span>`:`<span class="var ${v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${Math.abs(v).toFixed(1).replace('.',',')}%</span>`;
 function tilesV(arr){return`<div class="tiles">${arr.map(([rot,val,gold,v])=>`<div class="tile${gold?' gold':''}"><span class="muted">${rot}</span><b>${val}</b>${badgeVar(v)}</div>`).join('')}</div>`}
 function periodoAnt(){const hoje=new Date().getDate(),atual=S.mes===mesAtual();return S.resPrev.filter(p=>!atual||new Date(p.pago_em).getDate()<=hoje)}
 function ctxRes(){
@@ -910,15 +1101,30 @@ function blocoFunil(C,P){
     <div class="conv"><b>${conv.toFixed(0)}%</b><span class="muted">dos pedidos criados no mês já foram pagos</span></div>
     <dl class="dl"><dt>Pedidos criados</dt><dd>${criados}</dd><dt>Pagos</dt><dd>${pagos}</dd><dt>Aguardando</dt><dd>${aguard.length} · ${brl(soma(aguard,p=>p.subtotal))}</dd><dt>Cancelados</dt><dd>${canc}</dd><dt>Tempo até pagar</dt><dd>${fmtDur(medio)} em média</dd></dl></section>`;
 }
-function distrib(titulo,pares){
+function distrib(titulo,pares,manter){
   const tot=soma(pares,x=>x[1]);if(!tot)return'';
-  return`<section class="box"><span class="eyebrow">${titulo}</span><ul class="dist">${[...pares].sort((a,b)=>b[1]-a[1]).map(([r,v,sub])=>`<li><span class="d-top"><b>${esc(r)}</b><span>${(v/tot*100).toFixed(0)}%${sub?' · '+esc(sub):''}</span></span><span class="rk-bar"><i style="width:${(v/tot*100).toFixed(1)}%"></i></span></li>`).join('')}</ul></section>`;
+  return`<section class="box"><span class="eyebrow">${titulo}</span><ul class="dist">${(manter?pares:[...pares].sort((a,b)=>b[1]-a[1])).map(([r,v,sub])=>`<li><span class="d-top"><b>${esc(r)}</b><span>${(v/tot*100).toFixed(0)}%${sub?' · '+esc(sub):''}</span></span><span class="rk-bar"><i style="width:${(v/tot*100).toFixed(1)}%"></i></span></li>`).join('')}</ul></section>`;
 }
 function agrup(P,chave,valor){const m={};P.forEach(p=>{const k=chave(p);m[k]=(m[k]||0)+valor(p)});return Object.entries(m)}
 function topProdutos(P){
   const m={};P.forEach(p=>p.itens.forEach(i=>{const k=((i.ref||'')+'|'+(i.desc||'')).toLowerCase().trim(),q=+i.qtd||0,x=m[k]||(m[k]={desc:i.desc||'Sem descrição',ref:i.ref||'',q:0,v:0});x.q+=q;x.v+=q*(+i.preco||0)}));
   const l=Object.values(m).sort((a,b)=>b.v-a.v).slice(0,8);
   return ranking('Produtos mais vendidos',l.map(x=>({id:'',nome:x.desc,valor:x.v,sub:`${x.ref?'Ref. '+esc(x.ref)+' · ':''}${x.q} ${x.q===1?'peça':'peças'}`})));
+}
+function blocoPagamento(P){
+  if(!P.length)return'';
+  const F=p=>(p.pagamento&&p.pagamento.forma)||'Não informada',tot=soma(P,p=>p.total)||1;
+  const por=n=>{const l=P.filter(p=>F(p)===n);return{n:l.length,v:soma(l,p=>p.total)}};
+  const pix=por('Pix'),cr=por('Cartão de crédito'),db=por('Cartão de débito');
+  const pc=x=>`${(x.v/tot*100).toFixed(0)}%`;
+  const C=P.filter(ehCredito),inf=C.filter(p=>parcelasDe(p)>0),parc=inf.filter(p=>parcelasDe(p)>1);
+  const media=inf.length?soma(inf,p=>parcelasDe(p))/inf.length:0;
+  const pcParc=C.length?parc.length/C.length*100:0;
+  const cont={};C.forEach(p=>{const n=parcelasDe(p);const k=n?(n===1?'À vista':n+'x'):'Não informado';cont[k]=(cont[k]||0)+1});
+  const ordem=k=>k==='À vista'?1:k==='Não informado'?99:parseInt(k);
+  const parcelas=Object.entries(cont).sort((a,b)=>ordem(a[0])-ordem(b[0])).map(([k,n])=>[k,n,`${n} ${n===1?'pedido':'pedidos'}`]);
+  return tilesV([['Pix',pc(pix),0,`${pix.n} ${pix.n===1?'pedido':'pedidos'} · ${brl(pix.v)}`],['Cartão de crédito',pc(cr),0,`${cr.n} ${cr.n===1?'pedido':'pedidos'} · ${brl(cr.v)}`],['Cartão de débito',pc(db),0,`${db.n} ${db.n===1?'pedido':'pedidos'} · ${brl(db.v)}`],['Parcelamento médio',inf.length?`${media.toFixed(1).replace('.',',')}x`:'—',0,C.length?`${pcParc.toFixed(0)}% do crédito parcelado`:'sem vendas no crédito']])
+   +(C.length?`<div class="dash2e">${distrib('Parcelas no cartão de crédito',parcelas,true)}</div>`:'');
 }
 function dashboard(X){
   const{P,C}=X,mes0=new Date(S.mes+'-01T00:00:00'),mes1=new Date(mes0.getFullYear(),mes0.getMonth()+1,1);
@@ -931,7 +1137,8 @@ function dashboard(X){
   return tilesV([['Peças vendidas',X.pc,0,X.dP],['Clientes atendidos',clientes],['Novos cadastros',novos],['Aguardando pagamento agora',brl(soma(aberto,p=>p.subtotal)),0]])
    +`<p class="muted" style="font-size:13px">${recompra?`${recompra} ${recompra===1?'cliente comprou':'clientes compraram'} mais de uma vez no mês. `:''}As setas comparam com o mesmo período do mês anterior.</p>`
    +`<div class="dash2">${graficoDias(P)}${blocoFunil(C,P)}</div>`
-   +`<div class="dash3">${distrib('Forma de pagamento',agrup(P,p=>(p.pagamento&&p.pagamento.forma)||'Não informada',p=>p.total).map(([k,v])=>[k,v,`${P.filter(p=>((p.pagamento&&p.pagamento.forma)||'Não informada')===k).length} ped.`]))}${distrib('Tipo de entrega',agrup(P,p=>MODOS[p.modo]||p.modo||'—',p=>1))}${distrib('Tamanhos mais vendidos',Object.entries(itensTam).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>[k,v,`${v} ${v===1?'peça':'peças'}`]))}</div>`
+   +blocoPagamento(P)
+   +`<div class="dash3">${distrib('Tipo de entrega',agrup(P,p=>MODOS[p.modo]||p.modo||'—',p=>1))}${distrib('Tamanhos mais vendidos',Object.entries(itensTam).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>[k,v,`${v} ${v===1?'peça':'peças'}`]))}</div>`
    +topProdutos(P);
 }
 const ticket=r=>r.n?r.base/r.n:0;
@@ -1094,7 +1301,10 @@ function vAjuda(){
   const passos=[
     ['Montar o pedido','No <b>+ Pedido</b>, busque o cliente pelo nome ou WhatsApp (cliente novo é cadastrado ali mesmo). Inclua os produtos com descrição, referência, tamanho e preço, escolha a entrega (motoboy, Correios ou retirada na loja), informe o frete e cole o link de pagamento da Stone. O Fechô gera o número do pedido e a mensagem para o cliente.'],
     ['Enviar ao cliente','Toque em <b>Abrir no WhatsApp</b>: a conversa abre com o resumo do pedido, o total e o link de pagamento. Se preferir, use <b>Copiar mensagem</b>.'],
-    ['Confirmar o pagamento','Confira o recebimento no app da Stone e toque em <b>Confirmar pagamento recebido</b>, informando Pix ou cartão. A partir daqui os valores e as comissões do pedido ficam travados.'],
+    ['Afiliados e influencers','Em <b>Equipe → Convidar</b> escolha o papel <b>Afiliado</b>. Cada afiliado tem um <b>código</b> e um <b>link de indicação</b> que abre o WhatsApp do gerente da loja. Na venda por indicação (padrão 4%), o gerente escolhe o afiliado ou digita o código, o afiliado substitui o vendedor (fica só o gerente) e o cliente fica ligado a ele por 90 dias: as compras seguintes do mesmo WhatsApp já entram sozinhas com a comissão dele. Se o afiliado fecha a venda sozinho (<b>+ Pedido</b>), ganha mais (padrão 6%, no máximo 6%) e o pedido chega pronto para o gerente gerar o link, embalar, emitir a nota e enviar. Proprietário e supervisor ajustam as comissões e pagam em <b>Afiliados</b>, depois do prazo contado da entrega.'],
+        ['Limites e aprovação','Proprietário e supervisor definem, em <b>Equipe</b>, o limite de valor, a parcela mínima e o máximo de parcelas dos vendedores. Gerentes não têm limite. Pedido de vendedor acima do limite fica aguardando aprovação do gerente da loja ou do supervisor; até lá, o link de pagamento e a mensagem ao cliente ficam bloqueados.'],
+    ['Carteira e saque','Em <b>Carteira</b> cada pessoa vê o saldo das suas comissões (vendedor, gerente ou afiliado). A comissão de um pedido entra no saldo depois do prazo da entrega. O supervisor ganha 1% sobre os produtos de todos os pedidos (ajustável em Equipe). Cadastre sua <b>chave Pix</b>, toque em <b>Pedir saque</b> e o proprietário faz o Pix e confirma. Se o saque for recusado, o valor volta ao saldo.'],
+    ['Confirmar o pagamento','Confira o recebimento no app da Stone e toque em <b>Confirmar pagamento recebido</b>, conferindo a forma de pagamento (já vem preenchida do pedido). A partir daqui os valores e as comissões do pedido ficam travados.'],
     ['Separar e embalar','Separe os produtos e marque <b>Pedido embalado</b>.'],
     ['Emitir a nota fiscal','Emita a nota no PDVNet e registre o número, a chave de acesso e o link do PDF. A mensagem seguinte já leva a nota para o cliente.'],
     ['Entregar','Chame o motoboy no app (Lalamove, Uber Direct, 99) ou poste nos Correios e registre a coleta com o código ou link de rastreio. Quando o cliente receber, marque <b>Entrega concluída</b>. Na retirada em loja, marque <b>Cliente retirou o pedido</b>.'],
@@ -1137,9 +1347,11 @@ document.addEventListener('input',ev=>{
   if(t.id==='f-bcli'){S.cliBuscaForm=t.value;mostraSugestoes(t.value);return}
   if(t.dataset.cf&&S.cli){S.cli[t.dataset.cf]=t.value;if(t.dataset.cf==='cep')buscaCep(t.value,'cli');return}
   if(t.id==='busca'){S.busca=t.value;const pos=t.selectionStart;render();const b=$('#busca');if(b){b.focus();try{b.setSelectionRange(pos,pos)}catch(e){}}return}
+  if(t.id&&t.id.indexOf('cx-')===0){S.cx[t.id]=t.value;if(t.id==='cx-tipo')render();return}
+  if(t.id==='f-acod'&&S.form){const c=t.value.trim().toUpperCase(),a=(S.afiliados||[]).find(x=>x.codigo&&x.codigo===c);if(a){S.form.afiliadoId=a.id;render();toast('Afiliado: '+a.nome)}return}
   if(S.form){
-    if(t.dataset.ff){S.form[t.dataset.ff]=t.value;if(t.dataset.ff==='frete')atualizaTotais();return}
-    if(t.dataset.fc){S.form.cliente[t.dataset.fc]=t.value;if(t.dataset.fc==='cep')buscaCep(t.value,'form');return}
+    if(t.dataset.ff){S.form[t.dataset.ff]=t.value;if(t.dataset.ff==='afiliadoId'){render();return}if(t.dataset.ff==='frete'||t.dataset.ff==='pag')atualizaTotais();return}
+    if(t.dataset.fc){S.form.cliente[t.dataset.fc]=t.value;if(t.dataset.fc==='cep')buscaCep(t.value,'form');if(t.dataset.fc==='fone')checaVinculo();return}
     if(t.dataset.fi){S.form.itens[+t.dataset.i][t.dataset.fi]=t.value;atualizaTotais();return}
   }
   if(t.dataset.cv&&S.cv){S.cv[t.dataset.cv]=t.value;return}
@@ -1151,11 +1363,12 @@ document.addEventListener('change',ev=>{
   const t=ev.target;
   if(S.form&&t.dataset.ff==='lojaId'){S.form.lojaId=t.value;if(!vendedoresDaLoja(t.value).some(p=>p.id===S.form.vendedorId))S.form.vendedorId='';render();return}
   if(S.form&&t.dataset.ff==='vendedorId'){S.form.vendedorId=t.value;return}
-  if(t.dataset.cv&&S.cv){S.cv[t.dataset.cv]=t.value;if(t.dataset.cv==='papel'){if(t.value==='proprietario'||t.value==='supervisor'){S.cv.loja_id='';S.cv.comissao=''}render()}return}
+  if(t.dataset.cv&&S.cv){S.cv[t.dataset.cv]=t.value;if(t.dataset.cv==='papel'){if(t.value==='proprietario'||t.value==='supervisor'||t.value==='afiliado'){S.cv.loja_id='';S.cv.comissao=t.value==='afiliado'?'4':''}render()}return}
   if(t.dataset.pe){S.eq[t.dataset.pe][t.dataset.pf]=t.value;if(t.dataset.pf==='papel')render();return}
   if(t.dataset.le&&t.type==='checkbox'){S.lj[t.dataset.le].ativa=t.checked;return}
+  if(t.id==='af-loja'){S.linkSel=+t.value||0;render();return}
   if(t.id==='mes'&&t.value){S.mes=t.value;carregarResultados();return}
-  if(t.id&&t.id.startsWith('p-'))t.dataset.dirty='1';
+    if(t.id&&t.id.startsWith('p-'))t.dataset.dirty='1';
 });
 document.addEventListener('submit',async ev=>{
   ev.preventDefault();
@@ -1223,25 +1436,46 @@ document.addEventListener('click',async ev=>{
     case'cv-salvar':await salvarConvite();break;
     case'nova-senha':{const r=await gravar(()=>sb.rpc('link_nova_senha',{p_perfil:b.dataset.id}),'Link gerado');if(r&&r!==true){S.reset[b.dataset.id]=r;render()}break}
     case'reset-copiar':{const c=S.reset[b.dataset.id];if(!c)break;try{await navigator.clipboard.writeText(msgNovaSenha(c));toast('Mensagem copiada')}catch(e){toast('Não foi possível copiar. Use Enviar no WhatsApp.')}break}
-    case'ir':S.view=b.dataset.v;S.form=null;S.eq={};S.lj={};S.cv=null;S.reset={};if(S.view==='equipe')await Promise.all([carregarPerfis(),carregarConvites()]);if(S.view==='resultados'){S.resMes=null;S.resLoja=null}render();window.scrollTo(0,0);break;
+    case'ir':S.view=b.dataset.v;S.form=null;S.eq={};S.lj={};S.cv=null;S.reset={};if(S.view==='equipe')await Promise.all([carregarPerfis(),carregarConvites()]);if(S.view==='afiliados')await Promise.all([carregarPerfis(),carregarPedidos(),carregarConfig(),carregarAfiliados()]);if(S.view==='resultados'){S.resMes=null;S.resLoja=null}if(S.view==='carteira'){S.cart=null;S.cartEq=null;S.cx={};render();await carregarCarteira()}render();window.scrollTo(0,0);break;
     case'novo':if(!podeVender())break;if(!lojasVisiveis().length){toast('Cadastre uma loja antes.');break}S.form=novoForm();S.erro='';S.view='novo';render();window.scrollTo(0,0);break;
     case'voltar':S.view='painel';S.form=null;S.erro='';S.confirmaCancel=false;render();break;
     case'loja':S.loja=b.dataset.id;render();break;
     case'etapa':S.etapa=b.dataset.id;render();break;
     case'abrir':S.atual=b.dataset.id;S.view='pedido';S.confirmaCancel=false;render();window.scrollTo(0,0);break;
-    case'add-item':S.form.itens.push({ref:'',desc:'',tam:'',qtd:1,preco:''});render();{const el=document.getElementById(`i${S.form.itens.length-1}-desc`);if(el)el.focus()}break;
+    case'obs-chip':{const it=S.form.itens[+b.dataset.i];if(!it)break;const t=b.dataset.t,at=String(it.obs||'');if(!at.includes(t))it.obs=(at?at+'; ':'')+t;render();break}
+    case'add-item':S.form.itens.push({ref:'',desc:'',tam:'',qtd:1,preco:'',obs:''});render();{const el=document.getElementById(`i${S.form.itens.length-1}-desc`);if(el)el.focus()}break;
     case'rm-item':S.form.itens.splice(+b.dataset.i,1);render();break;
     case'modo':S.form.modo=b.dataset.id;render();break;
     case'salvar-pedido':await salvarPedido();break;
-    case'editar':if(!p)break;S.form={id:p.id,lojaId:p.loja_id,vendedorId:p.vendedor_id||'',clienteId:p.cliente_id||null,cliente:{nome:'',fone:'',cpf:'',email:'',cep:'',endereco:'',bairro:'',cidade:'',...p.cliente},itens:p.itens.map(i=>({...i,preco:precoTxt(i.preco)})),modo:p.modo,frete:precoTxt(p.frete),link:p.link_pagamento||'',obs:p.obs||''};S.erro='';S.view='editar';render();window.scrollTo(0,0);break;
+    case'editar':if(!p)break;S.form={id:p.id,lojaId:p.loja_id,vendedorId:p.vendedor_id||'',clienteId:p.cliente_id||null,cliente:{nome:'',fone:'',cpf:'',email:'',cep:'',endereco:'',bairro:'',cidade:'',...p.cliente},itens:p.itens.map(i=>({...i,preco:precoTxt(i.preco)})),modo:p.modo,frete:precoTxt(p.frete),pag:keyDePag(p.pagamento),afiliadoId:p.afiliado_id||'',link:p.link_pagamento||'',obs:p.obs||''};S.erro='';S.view='editar';render();window.scrollTo(0,0);break;
+    case'copiar-link':{const t=$('#af-link');try{await navigator.clipboard.writeText(t.value);toast('Link copiado')}catch(e){t.focus();t.select();toast('Link selecionado: copie com o menu do celular')}break}
     case'copiar':{const t=$('#msg');try{await navigator.clipboard.writeText(t.value);toast('Mensagem copiada')}catch(e){t.focus();t.select();toast('Mensagem selecionada: copie com o menu do celular')}break}
     case'salvar-link':{const v=$('#p-link').value.trim();const r=await gravar(()=>sb.from('pedidos').update({link_pagamento:v}).eq('id',p.id).select().single(),'Link salvo. A mensagem já inclui o link.');if(r){const i=S.pedidos.findIndex(x=>x.id===p.id);S.pedidos[i]=normPed(r);$('#p-link').removeAttribute('data-dirty');render()}break}
-    case'confirmar-pag':{const forma=$('#p-forma').value;const lk=$('#p-link').value.trim();await avancar(p,'pago',{link_pagamento:lk||p.link_pagamento||'',pagamento:{gateway:'manual',status:'pago',forma}});break}
+    case'confirmar-pag':{const k=$('#p-forma').value;if(!k){toast('Escolha como o cliente pagou.');break}const lk=$('#p-link').value.trim();await avancar(p,'pago',{link_pagamento:lk||p.link_pagamento||'',pagamento:{...pagDeKey(k),gateway:'manual',status:'pago'}});break}
     case'avancar':await avancar(p,b.dataset.s);break;
     case'registrar-nf':{const numero=$('#p-nfnum').value.trim();if(!numero){toast('Informe o número da nota fiscal.');break}const chave=$('#p-nfchave').value.replace(/\D/g,'');if(chave&&chave.length!==44){toast('A chave de acesso tem 44 dígitos.');break}await avancar(p,'faturado',{nf:{numero,chave,link:$('#p-nflink').value.trim()}});break}
     case'registrar-coleta':await avancar(p,'coletado',{entrega:{app:$('#p-app').value,entregador:$('#p-entregador').value.trim(),codigo:$('#p-cod').value.trim(),link:$('#p-rast').value.trim(),coletado_em:nowIso()}});break;
     case'cancelar':S.confirmaCancel=true;render();break;
     case'cancelar-nao':S.confirmaCancel=false;render();break;
+    case'cart-pix-salvar':{const r=await gravar(()=>sb.rpc('salvar_chave_pix',{p_tipo:$('#cx-tipo').value,p_chave:$('#cx-chave').value}),'Chave Pix salva');if(r){delete S.cx['cx-chave'];delete S.cx['cx-tipo'];await carregarCarteira()}render();break}
+    case'cart-tudo':{S.cx['cx-valor']=vlBR(S.cart.disponivel);S.cx.conf=null;render();break}
+    case'cart-sacar':{const v=numBR($('#cx-valor').value),min=+S.cart.saque_min||10,disp=+S.cart.disponivel||0;if(!(v>0)){toast('Informe o valor do saque.');break}if(v<min){toast('O saque mínimo é '+brl(min)+'.');break}if(v>disp+0.001){toast('Valor maior que o saldo disponível.');break}S.cx.conf=Math.round(v*100)/100;render();break}
+    case'cart-sacar-nao':S.cx.conf=null;render();break;
+    case'cart-sacar-sim':{const v=S.cx.conf;if(!v)break;const r=await gravar(()=>sb.rpc('solicitar_saque',{p_valor:v}),'Saque pedido. A administração fará o Pix.');S.cx.conf=null;if(r){delete S.cx['cx-valor'];await carregarCarteira()}render();break}
+    case'cart-res':if(!ehDono())break;S.cx.res={id:b.dataset.id,a:b.dataset.a};render();break;
+    case'cart-res-nao':S.cx.res=null;render();break;
+    case'cart-res-sim':{if(!ehDono()||!S.cx.res)break;const R=S.cx.res,o=R.a==='recusado'?(($('#cx-obs')||{}).value||'').trim():'';if(R.a==='recusado'&&!o){toast('Informe o motivo da recusa.');break}const r=await gravar(()=>sb.rpc('resolver_saque',{p_id:R.id,p_acao:R.a,p_obs:o}),R.a==='pago'?'Saque marcado como pago':'Saque recusado');S.cx.res=null;delete S.cx['cx-obs'];if(r)await carregarCarteira();render();break}
+    case'cart-ajuste':{if(!ehDono())break;const pe=$('#cx-aj-p').value,v=numBR($('#cx-aj-v').value),m=$('#cx-aj-m').value.trim();if(!pe){toast('Escolha a pessoa.');break}if(!v||isNaN(v)){toast('Informe o valor do ajuste.');break}if(!m){toast('Informe o motivo.');break}const r=await gravar(()=>sb.rpc('lancar_ajuste',{p_perfil:pe,p_valor:v,p_motivo:m}),'Ajuste lançado');if(r){['cx-aj-p','cx-aj-v','cx-aj-m'].forEach(i=>delete S.cx[i]);await carregarCarteira()}render();break}
+    case'copiar-txt':{try{await navigator.clipboard.writeText(b.dataset.t||'');toast('Chave copiada')}catch(e){toast('Não foi possível copiar.')}break}
+    case'prazo-salvar':{if(!veTodas())break;const d=parseInt($('#af-prazo').value);if(!(d>=0&&d<=90)){toast('Prazo de 0 a 90 dias.');break}const r=await gravar(()=>sb.from('config').update({valor:{...(S.config||{}),prazo_dias:d},atualizado_em:nowIso()}).eq('chave','afiliado'),'Prazo salvo');if(r){await carregarConfig();render()}break}
+    case'af-com-salvar':{if(!veTodas())break;const id=b.dataset.id,c=toNum($('#afc-'+id).value),d=toNum($('#afd-'+id).value);const er=comErro('afiliado',c);if(er){toast('Por indicação: de 1% a 10%.');break}if(!(d>=1&&d<=6)){toast('Venda direta: de 1% a 6%.');break}const r=await gravar(()=>sb.rpc('definir_comissao_afiliado',{p_id:id,p_indicacao:c,p_direta:d}),'Comissões salvas');if(r){await Promise.all([carregarPerfis(),carregarAfiliados()]);render()}break}
+    case'af-pagar':S.confPagAf=b.dataset.id;render();break;
+    case'af-pagar-nao':S.confPagAf=null;render();break;
+    case'af-pagar-sim':{if(!veTodas())break;const r=await gravar(()=>sb.rpc('pagar_comissoes_afiliado',{p_afiliado:b.dataset.id}),'');S.confPagAf=null;if(r){toast(r.qtd?`${r.qtd} ${r.qtd===1?'pedido marcado':'pedidos marcados'} como pago: ${brl(r.total)}`:'Nenhuma comissão liberada agora.');await carregarPedidos()}render();break}
+    case'aprovar':{const r=await gravar(()=>sb.rpc('aprovar_pedido',{p_id:p.id}),'Pedido aprovado');if(r){const q=await sb.from('pedidos').select('*').eq('id',p.id).single();if(q.data){const i=S.pedidos.findIndex(x=>x.id===p.id);if(i>=0)S.pedidos[i]=normPed(q.data)}render()}break}
+    case'regras-salvar':{if(!veTodas()||S.busy)break;const linhas=[];for(const k of['vendedor']){const g=id=>{const t=$('#rg-'+k+'-'+id).value.trim();return t?toNum(t):null};const lim=g('lim'),px=g('pix'),pm=g('pmin');if([lim,px,pm].some(x=>x!=null&&!(x>0))){toast('Valor inválido. Use um número maior que zero ou deixe em branco.');return}linhas.push({papel:k,limite_valor:lim,limite_pix:px,parcela_min:pm,max_parcelas:parseInt($('#rg-'+k+'-max').value)||6})}
+      S.busy=true;let ok=true;try{for(const l of linhas){const r=await sb.from('regras').update({limite_valor:l.limite_valor,limite_pix:l.limite_pix,parcela_min:l.parcela_min,max_parcelas:l.max_parcelas,atualizado_em:nowIso()}).eq('papel',l.papel);if(r.error){ok=false;toast(erroTxt(r.error));break}}}catch(e){ok=false;toast('Sem conexão. Tente de novo.')}finally{S.busy=false}
+      if(ok){await carregarRegras();toast('Regras salvas');render()}break}
     case'cancelar-sim':await avancar(p,'cancelado');break;
     case'ajuda-voltar':S.view='painel';render();window.scrollTo(0,0);break;
     case'res-loja':S.resLoja=b.dataset.id;render();window.scrollTo(0,0);break;
@@ -1250,7 +1484,7 @@ document.addEventListener('click',async ev=>{
     case'novo-cli':S.cli=novoCli();S.erro='';S.view='cliente';render();window.scrollTo(0,0);break;
     case'salvar-cli':await salvarCliente();break;
     case'pedido-cli':{const id=S.cli&&S.cli.id;if(!id)break;S.form=novoForm();if(veTodas()){S.form.lojaId=S.cli.loja_id;S.form.vendedorId=S.cli.vendedor_id&&vendedoresDaLoja(S.cli.loja_id).some(x=>x.id===S.cli.vendedor_id)?S.cli.vendedor_id:''}S.erro='';S.view='novo';usarCliente(id);window.scrollTo(0,0);break}
-    case'usar-cli':usarCliente(b.dataset.id);break;
+    case'usar-cli':usarCliente(b.dataset.id);checaVinculo();break;
     case'trocar-cli':S.form.clienteId=null;S.form.cliente={nome:'',fone:'',cpf:'',email:'',cep:'',endereco:'',bairro:'',cidade:'Rio de Janeiro'};render();{const el=$('#f-bcli');if(el)el.focus()}break;
     case'salvar-perfil':await salvarPerfil(b.dataset.id);break;
     case'add-loja':S.lj['novo-'+Date.now()]={nome:'',marca:'Flamengo',sigla:'',ativa:true};render();break;

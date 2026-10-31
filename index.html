@@ -5,7 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fechô</title>
 <meta name="theme-color" content="#15171a">
-<meta name="versao" content="2026-10-29.11">
+<meta name="description" content="Fechô: vendas pelo WhatsApp das lojas oficiais. Pedido, link de pagamento, entrega, nota fiscal e comissão em um só lugar.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fechô">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Fechô · Vendas pelo WhatsApp das lojas oficiais">
+<meta property="og:description" content="Pedido, pagamento, entrega e comissão em um só lugar.">
+<meta property="og:url" content="https://fechovendas.vercel.app/">
+<meta property="og:image" content="https://fechovendas.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="versao" content="2026-10-31.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Fechô">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2323262a'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='700' font-size='38' text-anchor='middle' fill='%23d6b25a'%3EF%3C/text%3E%3C/svg%3E">
@@ -612,7 +624,7 @@ function renderNav(){
   const l=lojaDe(S.perfil.loja_id);
   sub.textContent=`${S.perfil.nome||S.email} · ${PAPEIS[S.perfil.papel]}${l&&!veTodas()?` · ${l.nome}`:''}`;
   const pend=ehDono()&&S.perfis.some(p=>p.status==='pendente');
-  $('#nav').innerHTML=`<button data-act="ir" data-v="painel" ${cur('painel')}>Pedidos</button><button data-act="ir" data-v="clientes" ${cur('clientes')||cur('cliente')}>Clientes</button><button data-act="ir" data-v="resultados" ${cur('resultados')}>Resultados</button><button data-act="ir" data-v="carteira" ${cur('carteira')}>Carteira</button>${veTodas()||ehGerente()?`<button data-act="ir" data-v="equipe" ${cur('equipe')}>Equipe${pend?' •':''}</button>`:''}${veTodas()?`<button data-act="ir" data-v="afiliados" ${cur('afiliados')}>Afiliados</button>`:''}${ehDono()?`<button data-act="ir" data-v="lojas" ${cur('lojas')}>Lojas</button>`:''}<button data-act="ir" data-v="ajuda" ${cur('ajuda')}>Como funciona</button><button class="atualiza" data-act="atualizar" title="Buscar a versão mais recente">↻ Atualizar</button><button data-act="sair">Sair</button>${podeVender()?`<button class="novo" data-act="novo">+ Pedido</button>`:''}`;
+  $('#nav').innerHTML=`<button data-act="ir" data-v="painel" ${cur('painel')}>Pedidos</button><button data-act="ir" data-v="clientes" ${cur('clientes')||cur('cliente')}>Clientes</button><button data-act="ir" data-v="resultados" ${cur('resultados')}>Resultados</button><button data-act="ir" data-v="carteira" ${cur('carteira')}>Carteira</button>${veTodas()||ehGerente()?`<button data-act="ir" data-v="equipe" ${cur('equipe')}>Equipe${pend?' •':''}</button>`:''}${veTodas()?`<button data-act="ir" data-v="afiliados" ${cur('afiliados')}>Afiliados</button>`:''}${ehDono()?`<button data-act="ir" data-v="lojas" ${cur('lojas')}>Lojas</button>`:''}<button data-act="ir" data-v="ajuda" ${cur('ajuda')}>Como funciona</button>${veTodas()&&!DEMO?`<button data-act="abrir-demo" title="Abre o app com dados de mentira para testar e treinar">Ambiente de teste</button>`:''}<button class="atualiza" data-act="atualizar" title="Buscar a versão mais recente">↻ Atualizar</button><button data-act="sair">Sair</button>${podeVender()?`<button class="novo" data-act="novo">+ Pedido</button>`:''}`;
 }
 
 /* --- acesso --- */
@@ -633,7 +645,7 @@ function vAuth(){
       ${m==='recuperar'?`<button type="button" class="link" data-act="auth-modo" data-m="entrar">Voltar para entrar</button>`:''}
     </form>
     ${m==='criar'?`<p class="notice">Depois de criar a conta, um proprietário libera seu acesso e define seu papel e sua comissão.</p>`:''}
-    <button type="button" class="link" data-act="ir" data-v="ajuda">Como funciona o Fechô</button>
+    <button type="button" class="link" data-act="ir" data-v="ajuda">Como funciona o Fechô</button> · <button type="button" class="link" data-act="abrir-demo">Testar com dados de mentira</button>
   </div>`}
 function vNovaSenha(){return`<div class="auth"><div class="marca">Fech<i>ô</i></div><form class="box" id="form-senha"><h2>Defina sua nova senha</h2><div class="f"><label for="n-senha">Nova senha</label><input id="n-senha" type="password" minlength="6" autocomplete="new-password" required></div>${S.auth.erro?`<p class="erro">${esc(S.auth.erro)}</p>`:''}<button class="btn pri full" type="submit">Salvar senha</button></form></div>`}
 function vPendente(){
@@ -1305,6 +1317,7 @@ function vAjuda(){
     ['Enviar ao cliente','Toque em <b>Abrir no WhatsApp</b>: a conversa abre com o resumo do pedido, o total e o link de pagamento. Se preferir, use <b>Copiar mensagem</b>.'],
     ['Afiliados e influencers','Em <b>Equipe → Convidar</b> escolha o papel <b>Afiliado</b>. Cada afiliado tem um <b>código</b> e um <b>link de indicação</b> que abre o WhatsApp do gerente da loja. Na venda por indicação (padrão 4%), o gerente escolhe o afiliado ou digita o código, o afiliado substitui o vendedor (fica só o gerente) e o cliente fica ligado a ele por 90 dias: as compras seguintes do mesmo WhatsApp já entram sozinhas com a comissão dele. Se o afiliado fecha a venda sozinho (<b>+ Pedido</b>), ganha mais (padrão 6%, no máximo 6%) e o pedido chega pronto para o gerente gerar o link, embalar, emitir a nota e enviar. Proprietário e supervisor ajustam as comissões e pagam em <b>Afiliados</b>, depois do prazo contado da entrega.'],
         ['Limites e aprovação','Proprietário e supervisor definem, em <b>Equipe</b>, o limite de valor, a parcela mínima e o máximo de parcelas dos vendedores. Gerentes não têm limite. Pedido de vendedor acima do limite fica aguardando aprovação do gerente da loja ou do supervisor; até lá, o link de pagamento e a mensagem ao cliente ficam bloqueados.'],
+    ['Ambiente de teste','O botão <b>Ambiente de teste</b> (proprietário e supervisor) e o link <b>Testar com dados de mentira</b> na tela de entrada abrem o Fechô com pedidos e pessoas de mentira. Use a barra preta de baixo para ver o app como proprietário, supervisor, gerente, vendedor ou afiliado. Nada vai para o banco real, e o botão <b>Zerar</b> recomeça.'],
     ['Carteira e saque','Em <b>Carteira</b> cada pessoa vê o saldo das suas comissões (vendedor, gerente ou afiliado). A comissão de um pedido entra no saldo depois do prazo da entrega. O supervisor ganha 1% sobre os produtos de todos os pedidos (ajustável em Equipe). Cadastre sua <b>chave Pix</b>, toque em <b>Pedir saque</b> e o proprietário faz o Pix e confirma. Se o saque for recusado, o valor volta ao saldo.'],
     ['Confirmar o pagamento','Confira o recebimento no app da Stone e toque em <b>Confirmar pagamento recebido</b>, conferindo a forma de pagamento (já vem preenchida do pedido). A partir daqui os valores e as comissões do pedido ficam travados.'],
     ['Separar e embalar','Separe os produtos e marque <b>Pedido embalado</b>.'],
@@ -1427,6 +1440,7 @@ document.addEventListener('click',async ev=>{
   switch(a){
     case'auth-modo':S.auth={modo:b.dataset.m,erro:'',ok:''};render();break;
     case'sair':await sb.auth.signOut();break;
+    case'abrir-demo':location.href=location.pathname+'?demo';break;
     case'recarregar':carregarTudo();break;
     case'atualizar':location.reload();break;
     case'conv-sair':S.conv=null;history.replaceState(null,'',location.pathname);render();break;
@@ -1737,11 +1751,18 @@ function criaDemo(){
   function barra(){
     if(document.getElementById('demo-bar'))return;
     const st=document.createElement('style');
-    st.textContent='#demo-bar{position:fixed;left:0;right:0;bottom:0;z-index:99;background:#111;color:#fff;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:center;flex-wrap:wrap;font:12px system-ui,sans-serif;border-top:2px solid #e5484d}#demo-bar b{color:#ffb4b6;margin-right:4px}#demo-bar button{font:600 12px system-ui,sans-serif;background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:14px;padding:6px 10px;cursor:pointer}#demo-bar button[aria-pressed=true]{background:#e5484d;border-color:#e5484d}body{padding-bottom:92px}';
+    document.documentElement.classList.add('demo');document.title='DEMO · Fechô';
+    const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.setAttribute('content','#3a2a7a');
+    const ai=document.querySelector('link[rel=apple-touch-icon]');if(ai)ai.setAttribute('href','/apple-touch-icon-demo.png');
+    const fv=document.querySelector('link[rel=icon]');if(fv)fv.setAttribute('href',"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233a2a7a'/%3E%3Ctext x='32' y='30' font-family='Arial' font-weight='900' font-size='24' text-anchor='middle' fill='white'%3EF%C3%B4%3C/text%3E%3Crect x='8' y='38' width='48' height='16' rx='4' fill='%23ffb020'/%3E%3Ctext x='32' y='51' font-family='Arial' font-weight='900' font-size='13' text-anchor='middle' fill='%231b1340'%3EDEMO%3C/text%3E%3C/svg%3E");
+    const fx=document.createElement('div');fx.id='demo-faixa';fx.setAttribute('role','status');fx.textContent='DEMONSTRAÇÃO · DADOS DE MENTIRA';
+    const hd=document.querySelector('header.top');if(hd)hd.insertBefore(fx,hd.firstChild);
+    const CSS_DEMO='html.demo .top{background:linear-gradient(180deg,#3a2a7a 0%,#1b1340 100%)!important;border-bottom:3px solid #ffb020!important}html.demo .brand b i{color:#ffb020!important}html.demo .brand b::after{content:"DEMO";font:900 11px system-ui,sans-serif;letter-spacing:.14em;background:#ffb020;color:#1b1340;border-radius:4px;padding:3px 7px;margin-left:10px;vertical-align:middle}#demo-faixa{background:repeating-linear-gradient(-45deg,#ffb020 0 14px,#1b1340 14px 28px);color:#fff;font:800 11px/1 system-ui,sans-serif;letter-spacing:.12em;text-align:center;padding:7px 8px;text-shadow:0 1px 2px #000,0 0 6px #000}html.demo body::after{content:"DEMO";position:fixed;inset:0;display:grid;place-items:center;font:900 34vw/1 system-ui,sans-serif;color:rgba(255,176,32,.07);transform:rotate(-16deg);pointer-events:none;z-index:1}';
+    st.textContent=CSS_DEMO+'#demo-bar{position:fixed;left:0;right:0;bottom:0;z-index:99;background:#111;color:#fff;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:center;flex-wrap:wrap;font:12px system-ui,sans-serif;border-top:2px solid #e5484d}#demo-bar b{color:#ffb4b6;margin-right:4px}#demo-bar button{font:600 12px system-ui,sans-serif;background:#2a2a2a;color:#fff;border:1px solid #555;border-radius:14px;padding:6px 10px;cursor:pointer}#demo-bar button[aria-pressed=true]{background:#e5484d;border-color:#e5484d}body{padding-bottom:92px}';
     document.head.appendChild(st);
     const d=document.createElement('div');d.id='demo-bar';
-    d.innerHTML='<b>DEMONSTRAÇÃO · dados de mentira</b>'+PERS.map(p=>'<button data-id="'+p[1]+'">'+p[2]+'</button>').join('')+'<button data-zera="1">Zerar</button>';
-    d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.zera){try{sessionStorage.removeItem(KEY)}catch(x){}location.reload()}else troca(b.dataset.id)});
+    d.innerHTML='<b>DEMONSTRAÇÃO · dados de mentira</b>'+PERS.map(p=>'<button data-id="'+p[1]+'">'+p[2]+'</button>').join('')+'<button data-zera="1">Zerar</button><button data-fora="1">Sair da demonstração</button>';
+    d.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.fora){location.href=location.pathname}else if(b.dataset.zera){try{sessionStorage.removeItem(KEY)}catch(x){}location.reload()}else troca(b.dataset.id)});
     document.body.appendChild(d);pinta();
   }
   if(!db||!db.perfis)semear();
